@@ -1,13 +1,13 @@
-package kr.ac.hyu.capstone.api;
+package capstone.api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AiAnnotationPlatformApplication {
+public class ApiApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(AiAnnotationPlatformApplication.class, args);
+		SpringApplication.run(ApiApplication.class, args);
 	}
 
 }

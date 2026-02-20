@@ -1,10 +1,10 @@
-package kr.ac.hyu.capstone.api;
+package capstone.api;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class AiAnnotationPlatformApplicationTests {
+class ApiApplicationTests {
 
 	@Test
 	void contextLoads() {
