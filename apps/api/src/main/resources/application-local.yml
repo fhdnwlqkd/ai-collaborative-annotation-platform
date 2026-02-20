@@ -1,0 +1,39 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/capstone?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: capstone
+    password: capstone_pw
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: info
+
+app:
+  kafka:
+    bootstrapServers: localhost:29092
+
+  storage:
+    provider: minio
+    endpoint: http://localhost:9000
+    bucket: capstone
+    accessKey: minioadmin
+    secretKey: minioadmin123
+
+  ai:
+    baseUrl: http://localhost:8001
+
+jwt:
+  secret: change-me

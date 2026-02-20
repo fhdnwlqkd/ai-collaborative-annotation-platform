@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+docker compose -f infra/docker-compose.infra.yml down
+echo "INFRA DOWN"
