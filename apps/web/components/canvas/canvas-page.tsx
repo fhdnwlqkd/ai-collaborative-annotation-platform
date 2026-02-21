@@ -80,6 +80,94 @@ export function CanvasPage({
   const [isDrawing, setIsDrawing] = useState(false)
   const [drawPoints, setDrawPoints] = useState<{ x: number; y: number }[]>([])
 
+  // Internal Drag State
+  const [draggingMode, setDraggingMode] = useState<"none" | "move" | "resize" | "vertex" | "pan">("none")
+  const [dragStartPos, setDragStartPos] = useState<{ x: number; y: number } | null>(null)
+  const [dragStartWorld, setDragStartWorld] = useState<{ x: number; y: number } | null>(null)
+  const [activeHandleIndex, setActiveHandleIndex] = useState<number | null>(null)
+  const [activeVertexIndex, setActiveVertexIndex] = useState<number | null>(null)
+  const [initialPoints, setInitialPoints] = useState<{ x: number; y: number }[] | null>(null)
+
+  const screenToWorld = useCallback((clientX: number, clientY: number) => {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    return {
+      x: (clientX - rect.left - pan.x) / zoom,
+      y: (clientY - rect.top - pan.y) / zoom,
+    }
+  }, [pan, zoom])
+
+  const isPointInBBox = (p: { x: number; y: number }, points: { x: number; y: number }[]) => {
+    const minX = Math.min(...points.map((pt) => pt.x))
+    const minY = Math.min(...points.map((pt) => pt.y))
+    const maxX = Math.max(...points.map((pt) => pt.x))
+    const maxY = Math.max(...points.map((pt) => pt.y))
+    return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY
+  }
+
+  const isPointInPolygon = (p: { x: number; y: number }, points: { x: number; y: number }[]) => {
+    let isInside = false
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+      if (
+        points[i].y > p.y !== points[j].y > p.y &&
+        p.x < ((points[j].x - points[i].x) * (p.y - points[i].y)) / (points[j].y - points[i].y) + points[i].x
+      ) {
+        isInside = !isInside
+      }
+    }
+    return isInside
+  }
+
+  const getBBoxHandleIdx = (worldPos: { x: number; y: number }, ann: Annotation) => {
+    if (ann.type !== "bbox") return null
+    const minX = Math.min(...ann.points.map((p) => p.x))
+    const minY = Math.min(...ann.points.map((p) => p.y))
+    const maxX = Math.max(...ann.points.map((p) => p.x))
+    const maxY = Math.max(...ann.points.map((p) => p.y))
+    const handles = [
+      { x: minX, y: minY }, // 0: TL
+      { x: maxX, y: minY }, // 1: TR
+      { x: maxX, y: maxY }, // 2: BR
+      { x: minX, y: maxY }, // 3: BL
+    ]
+    for (let i = 0; i < handles.length; i++) {
+      const h = handles[i]
+      const dx = (h.x - worldPos.x) * zoom
+      const dy = (h.y - worldPos.y) * zoom
+      if (Math.sqrt(dx * dx + dy * dy) < 8) return i
+    }
+    return null
+  }
+
+  const getPolygonVertexIdx = (worldPos: { x: number; y: number }, ann: Annotation) => {
+    if (ann.type !== "polygon") return null
+    for (let i = 0; i < ann.points.length; i++) {
+      const v = ann.points[i]
+      const dx = (v.x - worldPos.x) * zoom
+      const dy = (v.y - worldPos.y) * zoom
+      if (Math.sqrt(dx * dx + dy * dy) < 8) return i
+    }
+    return null
+  }
+
+  const findHitAnnotation = useCallback((worldPos: { x: number; y: number }) => {
+    for (let i = annotations.length - 1; i >= 0; i--) {
+      const ann = annotations[i]
+      if (ann.type === "bbox" && isPointInBBox(worldPos, ann.points)) return ann.id
+      if (ann.type === "polygon" && isPointInPolygon(worldPos, ann.points)) return ann.id
+    }
+    if (showSuggestionReview) {
+      for (let i = suggestions.length - 1; i >= 0; i--) {
+        const s = suggestions[i]
+        if (!selectedSuggestions.has(s.id)) continue
+        if (s.type === "bbox" && isPointInBBox(worldPos, s.points)) return s.id
+        if (s.type === "polygon" && isPointInPolygon(worldPos, s.points)) return s.id
+      }
+    }
+    return null
+  }, [annotations, showSuggestionReview, suggestions, selectedSuggestions])
+
   // Confirm / Reopen modals
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showReopenModal, setShowReopenModal] = useState(false)
@@ -184,6 +272,38 @@ export function CanvasPage({
         ctx.textAlign = "center"
         ctx.fillText(labelText, centroidX, centroidY + 4)
       }
+
+      // Draw handles for selected annotation
+      if (isSelected && !isLocked) {
+        ctx.fillStyle = "#FFFFFF"
+        ctx.strokeStyle = ann.color
+        ctx.lineWidth = 1
+        if (ann.type === "bbox") {
+          const minX = Math.min(...ann.points.map((p) => p.x))
+          const minY = Math.min(...ann.points.map((p) => p.y))
+          const maxX = Math.max(...ann.points.map((p) => p.x))
+          const maxY = Math.max(...ann.points.map((p) => p.y))
+          const handles = [
+            { x: minX, y: minY },
+            { x: maxX, y: minY },
+            { x: maxX, y: maxY },
+            { x: minX, y: maxY },
+          ]
+          handles.forEach((h) => {
+            ctx.beginPath()
+            ctx.arc(h.x, h.y, 4 / zoom, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.stroke()
+          })
+        } else if (ann.type === "polygon") {
+          ann.points.forEach((p) => {
+            ctx.beginPath()
+            ctx.arc(p.x, p.y, 4 / zoom, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.stroke()
+          })
+        }
+      }
     })
 
     // Draw current drawing in progress
@@ -246,38 +366,47 @@ export function CanvasPage({
     drawCanvas()
   }, [drawCanvas])
 
-  function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
+  function handleCanvasMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
     if (isLocked) return
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const x = (e.clientX - rect.left - pan.x) / zoom
-    const y = (e.clientY - rect.top - pan.y) / zoom
+    const worldPos = screenToWorld(e.clientX, e.clientY)
+    const { x, y } = worldPos
 
-    if (tool === "bbox") {
-      if (!isDrawing) {
-        setIsDrawing(true)
-        setDrawPoints([{ x, y }])
-      } else {
-        const start = drawPoints[0]
-        const newAnn: Annotation = {
-          id: `a-${Date.now()}`,
-          taskId: task.id,
-          label: Object.keys(LABEL_COLORS)[Math.floor(Math.random() * Object.keys(LABEL_COLORS).length)],
-          type: "bbox",
-          points: [
-            { x: start.x, y: start.y },
-            { x, y: start.y },
-            { x, y },
-            { x: start.x, y },
-          ],
-          color: Object.values(LABEL_COLORS)[Math.floor(Math.random() * Object.values(LABEL_COLORS).length)],
-          createdBy: "Alex Kim",
+    if (tool === "select") {
+      if (selectedAnnotation) {
+        const ann = [...annotations, ...suggestions].find((a) => a.id === selectedAnnotation)
+        if (ann) {
+          const hIdx = getBBoxHandleIdx(worldPos, ann)
+          if (hIdx !== null) {
+            setDraggingMode("resize")
+            setActiveHandleIndex(hIdx)
+            setDragStartWorld(worldPos)
+            setInitialPoints([...ann.points])
+            return
+          }
+          const vIdx = getPolygonVertexIdx(worldPos, ann)
+          if (vIdx !== null) {
+            setDraggingMode("vertex")
+            setActiveVertexIndex(vIdx)
+            setDragStartWorld(worldPos)
+            setInitialPoints([...ann.points])
+            return
+          }
         }
-        setAnnotations((prev) => [...prev, newAnn])
-        setIsDrawing(false)
-        setDrawPoints([])
       }
+
+      const hitId = findHitAnnotation(worldPos)
+      if (hitId) {
+        setSelectedAnnotation(hitId)
+        setDraggingMode("move")
+        setDragStartWorld(worldPos)
+        const ann = [...annotations, ...suggestions].find((a) => a.id === hitId)
+        if (ann) setInitialPoints([...ann.points])
+      } else {
+        setSelectedAnnotation(null)
+      }
+    } else if (tool === "bbox") {
+      setIsDrawing(true)
+      setDrawPoints([{ x, y }, { x, y }])
     } else if (tool === "polygon") {
       if (!isDrawing) {
         setIsDrawing(true)
@@ -285,7 +414,7 @@ export function CanvasPage({
       } else {
         const first = drawPoints[0]
         const dist = Math.sqrt((x - first.x) ** 2 + (y - first.y) ** 2)
-        if (drawPoints.length >= 3 && dist < 15) {
+        if (drawPoints.length >= 3 && dist * zoom < 15) {
           const newAnn: Annotation = {
             id: `a-${Date.now()}`,
             taskId: task.id,
@@ -302,6 +431,9 @@ export function CanvasPage({
           setDrawPoints((prev) => [...prev, { x, y }])
         }
       }
+    } else if (tool === "pan") {
+      setDraggingMode("pan")
+      setDragStartPos({ x: e.clientX, y: e.clientY })
     } else if (tool === "zoomin") {
       setZoom((z) => Math.min(z + 0.25, 3))
     } else if (tool === "zoomout") {
@@ -310,14 +442,113 @@ export function CanvasPage({
   }
 
   function handleCanvasMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (isDrawing && tool === "bbox" && drawPoints.length === 1) {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const rect = canvas.getBoundingClientRect()
-      const x = (e.clientX - rect.left - pan.x) / zoom
-      const y = (e.clientY - rect.top - pan.y) / zoom
-      setDrawPoints([drawPoints[0], { x, y }])
+    const worldPos = screenToWorld(e.clientX, e.clientY)
+    const { x, y } = worldPos
+
+    if (draggingMode === "pan" && dragStartPos) {
+      const dx = e.clientX - dragStartPos.x
+      const dy = e.clientY - dragStartPos.y
+      setPan((p) => ({ x: p.x + dx, y: p.y + dy }))
+      setDragStartPos({ x: e.clientX, y: e.clientY })
+      return
     }
+
+    if (isDrawing && tool === "bbox" && drawPoints.length >= 1) {
+      setDrawPoints([drawPoints[0], { x, y }])
+      return
+    }
+
+    if (!dragStartWorld || !initialPoints || !selectedAnnotation) return
+
+    const dx = x - dragStartWorld.x
+    const dy = y - dragStartWorld.y
+
+    const updateAnnotationPoints = (id: string, newPoints: { x: number; y: number }[]) => {
+      if (annotations.some((a) => a.id === id)) {
+        setAnnotations((prev) => prev.map((a) => (a.id === id ? { ...a, points: newPoints } : a)))
+      } else if (suggestions.some((s) => s.id === id)) {
+        setSuggestions((prev) => prev.map((s) => (s.id === id ? { ...s, points: newPoints } : s)))
+        if (!adjustedSuggestions.has(id)) {
+          setAdjustedSuggestions((prev) => new Set(prev).add(id))
+        }
+      }
+    }
+
+    if (draggingMode === "move") {
+      const newPoints = initialPoints.map((p) => ({ x: p.x + dx, y: p.y + dy }))
+      updateAnnotationPoints(selectedAnnotation, newPoints)
+    } else if (draggingMode === "vertex" && activeVertexIndex !== null) {
+      const newPoints = [...initialPoints]
+      newPoints[activeVertexIndex] = {
+        x: initialPoints[activeVertexIndex].x + dx,
+        y: initialPoints[activeVertexIndex].y + dy,
+      }
+      updateAnnotationPoints(selectedAnnotation, newPoints)
+    } else if (draggingMode === "resize" && activeHandleIndex !== null) {
+      const minX = Math.min(...initialPoints.map((p) => p.x))
+      const minY = Math.min(...initialPoints.map((p) => p.y))
+      const maxX = Math.max(...initialPoints.map((p) => p.x))
+      const maxY = Math.max(...initialPoints.map((p) => p.y))
+
+      let newMinX = minX,
+        newMinY = minY,
+        newMaxX = maxX,
+        newMaxY = maxY
+
+      if (activeHandleIndex === 0) {
+        newMinX = minX + dx
+        newMinY = minY + dy
+      } else if (activeHandleIndex === 1) {
+        newMaxX = maxX + dx
+        newMinY = minY + dy
+      } else if (activeHandleIndex === 2) {
+        newMaxX = maxX + dx
+        newMaxY = maxY + dy
+      } else if (activeHandleIndex === 3) {
+        newMinX = minX + dx
+        newMaxY = maxY + dy
+      }
+
+      const pts = [
+        { x: newMinX, y: newMinY },
+        { x: newMaxX, y: newMinY },
+        { x: newMaxX, y: newMaxY },
+        { x: newMinX, y: newMaxY },
+      ]
+      updateAnnotationPoints(selectedAnnotation, pts)
+    }
+  }
+
+  function handleCanvasMouseUp(e: React.MouseEvent<HTMLCanvasElement>) {
+    if (tool === "bbox" && isDrawing) {
+      const worldPos = screenToWorld(e.clientX, e.clientY)
+      const start = drawPoints[0]
+      if (Math.abs(worldPos.x - start.x) * zoom > 5 && Math.abs(worldPos.y - start.y) * zoom > 5) {
+        const newAnn: Annotation = {
+          id: `a-${Date.now()}`,
+          taskId: task.id,
+          label: Object.keys(LABEL_COLORS)[Math.floor(Math.random() * Object.keys(LABEL_COLORS).length)],
+          type: "bbox",
+          points: [
+            { x: start.x, y: start.y },
+            { x: worldPos.x, y: start.y },
+            { x: worldPos.x, y: worldPos.y },
+            { x: start.x, y: worldPos.y },
+          ],
+          color: Object.values(LABEL_COLORS)[Math.floor(Math.random() * Object.values(LABEL_COLORS).length)],
+          createdBy: "Alex Kim",
+        }
+        setAnnotations((prev) => [...prev, newAnn])
+      }
+      setIsDrawing(false)
+      setDrawPoints([])
+    }
+    setDraggingMode("none")
+    setDragStartPos(null)
+    setDragStartWorld(null)
+    setActiveHandleIndex(null)
+    setActiveVertexIndex(null)
+    setInitialPoints(null)
   }
 
   function handleAutoSuggest() {
@@ -476,11 +707,17 @@ export function CanvasPage({
       if (key === "b") setTool("bbox")
       if (key === "p") setTool("polygon")
       if (key === "h") setTool("pan")
-      if (key === "escape") { setIsDrawing(false); setDrawPoints([]) }
+      if (key === "escape") {
+        setIsDrawing(false)
+        setDrawPoints([])
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedAnnotation) {
+        handleDeleteAnnotation(selectedAnnotation)
+      }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isLocked])
+  }, [isLocked, selectedAnnotation])
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
@@ -596,8 +833,9 @@ export function CanvasPage({
           )}
           <canvas
             ref={canvasRef}
-            onClick={handleCanvasClick}
+            onMouseDown={handleCanvasMouseDown}
             onMouseMove={handleCanvasMouseMove}
+            onMouseUp={handleCanvasMouseUp}
             className={`w-full h-full ${
               tool === "bbox" || tool === "polygon" ? "cursor-crosshair" :
               tool === "pan" ? "cursor-grab" :
