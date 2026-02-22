@@ -1,6 +1,8 @@
 spring:
   application:
     name: capstone-api
+  profiles:
+    active: local
 
 server:
   port: ${API_PORT:8080}
