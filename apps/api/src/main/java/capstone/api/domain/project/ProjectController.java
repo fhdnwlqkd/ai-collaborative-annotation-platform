@@ -1,0 +1,29 @@
+package capstone.api.domain.project;
+
+
+import capstone.api.domain.project.dto.CreateProjectRequest;
+import capstone.api.domain.project.dto.ProjectResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/projects")
+@RequiredArgsConstructor
+public class ProjectController {
+    private final ProjectService projectService;
+
+    @PostMapping
+    public ProjectResponse createProject(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody CreateProjectRequest request) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        return projectService.createProject(userId, request);
+    }
+    
+}

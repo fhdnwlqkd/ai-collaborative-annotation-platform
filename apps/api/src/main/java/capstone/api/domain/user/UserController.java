@@ -1,6 +1,9 @@
 package capstone.api.domain.user;
 
+import capstone.api.domain.user.dto.LoginRequest;
+import capstone.api.domain.user.dto.LoginResponse;
 import capstone.api.domain.user.dto.RegisterRequest;
+import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,6 +29,16 @@ public class UserController {
             );
             return ResponseEntity.ok("회원가입 성공. 생성된 유저 ID : " + newUser.getId());
         } catch(IllegalArgumentException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            String token = userService.login(request.email(), request.password());
+            return ResponseEntity.ok(new LoginResponse(token));
+        } catch (IllegalArgumentException e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

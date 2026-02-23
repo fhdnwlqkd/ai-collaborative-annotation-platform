@@ -35,5 +35,9 @@ app:
   ai:
     baseUrl: http://localhost:8001
 
+
 jwt:
-  secret: change-me
+  #최소 32글자 이상의 랜덤 문자열
+  secret: "capstone-ai-annotation-platform-super-secret-key-2026-very-long"
+  #토근 유효시간(밀리초)
+  expiration: 86400000

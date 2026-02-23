@@ -1,3 +1,4 @@
+//회원가입용
 package capstone.api.domain.user.dto;
 
 public record RegisterRequest(
