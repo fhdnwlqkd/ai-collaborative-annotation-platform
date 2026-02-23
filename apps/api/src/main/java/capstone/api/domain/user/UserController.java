@@ -3,7 +3,6 @@ package capstone.api.domain.user;
 import capstone.api.domain.user.dto.LoginRequest;
 import capstone.api.domain.user.dto.LoginResponse;
 import capstone.api.domain.user.dto.RegisterRequest;
-import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
