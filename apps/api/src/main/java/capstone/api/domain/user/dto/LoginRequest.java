@@ -1,4 +1,7 @@
+//로그인용
 package capstone.api.domain.user.dto;
 
-public class LoginRequest {
-}
+public record LoginRequest (
+        String email,
+        String password
+){}
