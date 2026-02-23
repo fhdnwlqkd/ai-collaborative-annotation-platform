@@ -8,7 +8,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.context.ActiveProfiles;
 import capstone.api.domain.user.*;
-import static org.mockito.BDDMockito.given;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
