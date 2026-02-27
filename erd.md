@@ -1,3 +1,190 @@
+Entity Relationship Diagram
+
+```mermaid
+erDiagram
+  USERS {
+    bigint id PK
+    varchar email UK
+    varchar name
+    varchar password_hash
+    datetime created_at
+  }
+
+  PROJECTS {
+    bigint id PK
+    varchar name
+    text description
+    bigint owner_user_id FK
+    varchar invite_code UK
+    bigint active_model_version_id FK
+    datetime created_at
+  }
+
+  PROJECT_MEMBERS {
+    bigint project_id PK, FK
+    bigint user_id PK, FK
+    enum role "OWNER|PARTICIPANT"
+    datetime joined_at
+  }
+
+  ASSETS {
+    bigint id PK
+    bigint project_id FK
+    varchar storage_key
+    varchar original_filename
+    int width
+    int height
+    varchar checksum
+    datetime created_at
+  }
+
+  TASKS {
+    bigint id PK
+    bigint project_id FK
+    bigint asset_id FK
+    enum status "TODO|IN_PROGRESS|CONFIRMED"
+    bigint assignee_user_id FK
+    datetime created_at
+    datetime updated_at
+  }
+
+  LABELS {
+    bigint id PK
+    bigint project_id FK
+    int version
+    varchar name
+    varchar color
+    datetime created_at
+  }
+
+  ANNOTATIONS {
+    bigint id PK
+    bigint task_id FK
+    bigint asset_id FK
+    bigint label_id FK
+    float bbox_x
+    float bbox_y
+    float bbox_w
+    float bbox_h
+    bigint created_by FK
+    int version
+    boolean is_deleted
+    datetime created_at
+    datetime updated_at
+  }
+
+  ANNOTATION_EVENTS {
+    bigint id PK
+    bigint project_id FK
+    bigint task_id FK
+    bigint user_id FK
+    enum type "CREATE|UPDATE|DELETE|LOCK|UNLOCK"
+    json payload_json
+    datetime created_at
+  }
+
+  AI_SUGGESTIONS {
+    bigint id PK
+    bigint task_id FK
+    bigint asset_id FK
+    bigint model_version_id FK
+    enum status "QUEUED|RUNNING|READY|ERROR"
+    json result_json
+    text error_message
+    datetime created_at
+    datetime updated_at
+  }
+
+  SUGGESTION_FEEDBACK {
+    bigint id PK
+    bigint suggestion_id FK
+    bigint user_id FK
+    enum action "ACCEPT|MODIFY|REJECT"
+    json final_annotation_ids_json
+    datetime created_at
+  }
+
+  DATASET_VERSIONS {
+    bigint id PK
+    bigint project_id FK
+    varchar name
+    int split_seed
+    float train_ratio
+    json class_map_json
+    varchar export_storage_key
+    datetime created_at
+  }
+
+  DATASET_VERSION_ITEMS {
+    bigint dataset_version_id PK, FK
+    bigint asset_id PK, FK
+    bigint task_id FK
+    enum split "TRAIN|VAL"
+  }
+
+  TRAINING_JOBS {
+    bigint id PK
+    bigint project_id FK
+    bigint dataset_version_id FK
+    varchar base_model
+    enum status "QUEUED|RUNNING|SUCCESS|FAIL"
+    datetime started_at
+    datetime finished_at
+    json metrics_json
+    varchar log_storage_key
+    bigint created_by FK
+    datetime created_at
+  }
+
+  MODEL_VERSIONS {
+    bigint id PK
+    bigint project_id FK
+    bigint training_job_id FK
+    varchar version_name
+    varchar weights_storage_key
+    json class_map_json
+    json metrics_json
+    datetime created_at
+  }
+
+  USERS ||--o{ PROJECTS : owns
+  USERS ||--o{ PROJECT_MEMBERS : joins
+  PROJECTS ||--o{ PROJECT_MEMBERS : has
+
+  PROJECTS ||--o{ ASSETS : contains
+  PROJECTS ||--o{ TASKS : has
+  ASSETS ||--o{ TASKS : used_by
+
+  PROJECTS ||--o{ LABELS : defines
+  TASKS ||--o{ ANNOTATIONS : has
+  ASSETS ||--o{ ANNOTATIONS : on
+  LABELS ||--o{ ANNOTATIONS : labels
+  USERS ||--o{ ANNOTATIONS : created
+
+  PROJECTS ||--o{ ANNOTATION_EVENTS : logs
+  TASKS ||--o{ ANNOTATION_EVENTS : logs
+  USERS ||--o{ ANNOTATION_EVENTS : acts
+
+  TASKS ||--o{ AI_SUGGESTIONS : suggests
+  ASSETS ||--o{ AI_SUGGESTIONS : suggests_on
+  MODEL_VERSIONS ||--o{ AI_SUGGESTIONS : produced_by
+
+  AI_SUGGESTIONS ||--o{ SUGGESTION_FEEDBACK : feedback
+  USERS ||--o{ SUGGESTION_FEEDBACK : gives
+
+  PROJECTS ||--o{ DATASET_VERSIONS : versions
+  DATASET_VERSIONS ||--o{ DATASET_VERSION_ITEMS : includes
+  ASSETS ||--o{ DATASET_VERSION_ITEMS : part_of
+  TASKS ||--o{ DATASET_VERSION_ITEMS : references
+
+  PROJECTS ||--o{ TRAINING_JOBS : trains
+  DATASET_VERSIONS ||--o{ TRAINING_JOBS : input
+  USERS ||--o{ TRAINING_JOBS : created
+
+  PROJECTS ||--o{ MODEL_VERSIONS : has
+  TRAINING_JOBS ||--o{ MODEL_VERSIONS : produces
+```
+
 ### **1) users**
 
 - id (PK)

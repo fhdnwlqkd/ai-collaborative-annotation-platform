@@ -59,6 +59,17 @@ export type ModelVersion = {
   confirmedTasksUsed: number
 }
 
+export type ProjectRole = 'OWNER' | 'PARTICIPANT'
+
+export type ProjectMember = {
+  id: string
+  name: string
+  email: string
+  role: ProjectRole
+  joinedAt: string
+  avatar: string
+}
+
 export type UploadFile = {
   id: string
   name: string
@@ -146,4 +157,11 @@ export const ONLINE_USERS = [
   { id: 'u1', name: 'Alex Kim', avatar: 'AK', color: '#3B82F6' },
   { id: 'u2', name: 'Jamie L', avatar: 'JL', color: '#0D9488' },
   { id: 'u3', name: 'Sam R', avatar: 'SR', color: '#F59E0B' },
+]
+
+export const MOCK_MEMBERS: ProjectMember[] = [
+  { id: 'u1', name: 'Alex Kim', email: 'alex@labelforge.ai', role: 'OWNER', joinedAt: '2026-01-15', avatar: 'AK' },
+  { id: 'u2', name: 'Jamie L', email: 'jamie@labelforge.ai', role: 'PARTICIPANT', joinedAt: '2026-01-16', avatar: 'JL' },
+  { id: 'u3', name: 'Sam R', email: 'sam@labelforge.ai', role: 'PARTICIPANT', joinedAt: '2026-01-18', avatar: 'SR' },
+  { id: 'u4', name: 'Jordan M', email: 'jordan@labelforge.ai', role: 'PARTICIPANT', joinedAt: '2026-01-20', avatar: 'JM' },
 ]

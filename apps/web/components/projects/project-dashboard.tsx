@@ -7,6 +7,7 @@ import { type Project, type Task, MOCK_USER } from "@/lib/store"
 import { TaskBoard } from "@/components/tasks/task-board"
 import { ModelVersionsPage } from "@/components/models/model-versions-page"
 import { ExportDatasetPage } from "@/components/export/export-dataset-page"
+import { ProjectMembersPage } from "@/components/projects/project-members-page"
 import { toast } from "sonner"
 
 export function ProjectDashboard({
@@ -108,6 +109,12 @@ export function ProjectDashboard({
                 >
                   Export Dataset
                 </TabsTrigger>
+                <TabsTrigger
+                  value="members"
+                  className="data-[state=active]:bg-secondary data-[state=active]:text-foreground text-muted-foreground px-4 rounded-md h-9"
+                >
+                  Members
+                </TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -125,6 +132,13 @@ export function ProjectDashboard({
           </TabsContent>
           <TabsContent value="export" className="flex-1 mt-0">
             <ExportDatasetPage tasks={tasks} />
+          </TabsContent>
+          <TabsContent value="members" className="flex-1 mt-0">
+            <ProjectMembersPage 
+              projectId={project.id} 
+              isOwner={isOwner}
+              currentUserId={MOCK_USER.id}
+            />
           </TabsContent>
         </Tabs>
       </div>

@@ -50,6 +50,7 @@ export function ProjectListPage({
       createdAt: new Date().toISOString().split("T")[0],
       taskCount: 0,
       memberCount: 1,
+      ownerId: MOCK_USER.id,
     }
     setShowCreate(false)
     setCreateName("")
