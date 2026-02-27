@@ -1,97 +1,94 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { LoginPage } from "@/components/auth/login-page"
-import { SignupPage } from "@/components/auth/signup-page"
-import { ProjectListPage } from "@/components/projects/project-list-page"
-import { ProjectDashboard } from "@/components/projects/project-dashboard"
-import { CanvasPage } from "@/components/canvas/canvas-page"
-import { MOCK_PROJECTS, MOCK_TASKS, MOCK_USER, type Project, type Task } from "@/lib/store"
+import { useState } from "react";
+import { LoginPage } from "@/components/auth/login-page";
+import { SignupPage } from "@/components/auth/signup-page";
+import { ProjectListPage } from "@/components/projects/project-list-page";
+import { ProjectDashboard } from "@/components/projects/project-dashboard";
+import { CanvasPage } from "@/components/canvas/canvas-page";
+import {
+  MOCK_PROJECTS,
+  MOCK_TASKS,
+  MOCK_USER,
+  type Project,
+  type Task,
+} from "@/lib/store";
 
-export type AppView =
-  | "login"
-  | "signup"
-  | "projects"
-  | "dashboard"
-  | "canvas"
+export type AppView = "login" | "signup" | "projects" | "dashboard" | "canvas";
 
 export default function App() {
-  const [view, setView] = useState<AppView>("login")
-  const [currentProject, setCurrentProject] = useState<Project | null>(null)
-  const [currentTask, setCurrentTask] = useState<Task | null>(null)
-  const [dashboardTab, setDashboardTab] = useState<string>("tasks")
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS)
+  const [view, setView] = useState<AppView>("login");
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [currentTask, setCurrentTask] = useState<Task | null>(null);
+  const [dashboardTab, setDashboardTab] = useState<string>("tasks");
+  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
 
   function handleLogin() {
-    setView("projects")
+    setView("projects");
   }
 
   function handleGoToSignup() {
-    setView("signup")
+    setView("signup");
   }
 
   function handleGoToLogin() {
-    setView("login")
+    setView("login");
   }
 
   function handleSelectProject(project: Project) {
-    setCurrentProject(project)
-    setDashboardTab("tasks")
-    setView("dashboard")
+    setCurrentProject(project);
+    setDashboardTab("tasks");
+    setView("dashboard");
   }
 
   function handleOpenCanvas(task: Task) {
-    setCurrentTask(task)
-    setView("canvas")
+    setCurrentTask(task);
+    setView("canvas");
   }
 
   function handleBackToProjects() {
-    setCurrentProject(null)
-    setView("projects")
+    setCurrentProject(null);
+    setView("projects");
   }
 
   function handleBackToDashboard() {
-    setCurrentTask(null)
-    setView("dashboard")
+    setCurrentTask(null);
+    setView("dashboard");
   }
 
   function handleLogout() {
-    setCurrentProject(null)
-    setCurrentTask(null)
-    setView("login")
+    setCurrentProject(null);
+    setCurrentTask(null);
+    setView("login");
   }
 
   function handleTasksCreated(newTasks: Task[]) {
-    setTasks((prev) => [...prev, ...newTasks])
+    setTasks((prev) => [...prev, ...newTasks]);
   }
 
   function handleTaskUpdated(updatedTask: Task) {
     setTasks((prev) =>
-      prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
-    )
-    setCurrentTask(updatedTask)
+      prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
+    );
+    setCurrentTask(updatedTask);
   }
 
-  const isOwner = currentProject ? currentProject.ownerId === MOCK_USER.id : false
+  const isOwner = currentProject
+    ? currentProject.ownerId === MOCK_USER.id
+    : false;
   const projectTasks = currentProject
     ? tasks.filter((t) => t.projectId === currentProject.id)
-    : []
+    : [];
 
   switch (view) {
     case "login":
       return (
-        <LoginPage
-          onLogin={handleLogin}
-          onGoToSignup={handleGoToSignup}
-        />
-      )
+        <LoginPage onLogin={handleLogin} onGoToSignup={handleGoToSignup} />
+      );
     case "signup":
       return (
-        <SignupPage
-          onSignup={handleGoToLogin}
-          onGoToLogin={handleGoToLogin}
-        />
-      )
+        <SignupPage onSignup={handleGoToLogin} onGoToLogin={handleGoToLogin} />
+      );
     case "projects":
       return (
         <ProjectListPage
@@ -99,7 +96,7 @@ export default function App() {
           onSelectProject={handleSelectProject}
           onLogout={handleLogout}
         />
-      )
+      );
     case "dashboard":
       return currentProject ? (
         <ProjectDashboard
@@ -113,7 +110,7 @@ export default function App() {
           onTasksCreated={handleTasksCreated}
           isOwner={isOwner}
         />
-      ) : null
+      ) : null;
     case "canvas":
       return currentTask && currentProject ? (
         <CanvasPage
@@ -123,8 +120,8 @@ export default function App() {
           isOwner={isOwner}
           onTaskUpdated={handleTaskUpdated}
         />
-      ) : null
+      ) : null;
     default:
-      return null
+      return null;
   }
 }

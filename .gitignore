@@ -28,3 +28,6 @@ apps/ai/.venv/
 # IDE
 .idea/
 .vscode/
+
+# Playwright
+.playwright-mcp/
