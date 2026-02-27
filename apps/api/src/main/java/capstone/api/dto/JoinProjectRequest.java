@@ -1,4 +1,4 @@
-package capstone.api.domain.project.dto;
+package capstone.api.dto;
 
 public record JoinProjectRequest(
         String inviteCode

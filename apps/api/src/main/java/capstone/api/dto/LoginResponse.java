@@ -1,4 +1,4 @@
-package capstone.api.domain.user.dto;
+package capstone.api.dto;
 
 public record LoginResponse(
         String token

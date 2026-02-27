@@ -1,4 +1,4 @@
-package capstone.api.auth;
+package capstone.api.core.auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

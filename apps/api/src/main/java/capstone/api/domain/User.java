@@ -1,4 +1,4 @@
-package capstone.api.domain.user;
+package capstone.api.domain;
 import jakarta.persistence.*;
 import java.time.Instant;
 

@@ -1,10 +1,14 @@
-package capstone.api.domain.project;
+package capstone.api.service;
 
 
-import capstone.api.domain.project.dto.CreateProjectRequest;
-import capstone.api.domain.project.dto.ProjectResponse;
-import capstone.api.domain.user.User;
-import capstone.api.domain.user.UserRepository;
+import capstone.api.domain.Project;
+import capstone.api.domain.ProjectMember;
+import capstone.api.repository.ProjectRepository;
+import capstone.api.dto.CreateProjectRequest;
+import capstone.api.dto.ProjectResponse;
+import capstone.api.domain.User;
+import capstone.api.repository.ProjectMemberRepository;
+import capstone.api.repository.UserRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

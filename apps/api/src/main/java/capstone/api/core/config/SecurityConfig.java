@@ -1,6 +1,6 @@
-package capstone.api.global.config;
+package capstone.api.core.config;
 
-import capstone.api.auth.JwtAuthFilter;
+import capstone.api.core.auth.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;

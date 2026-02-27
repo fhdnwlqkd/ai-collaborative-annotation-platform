@@ -1,6 +1,5 @@
-package capstone.api.domain.project;
+package capstone.api.domain;
 
-import capstone.api.domain.user.User;
 import jakarta.persistence.*;
 
 import java.time.Instant;

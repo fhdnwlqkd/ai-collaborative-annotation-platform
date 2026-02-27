@@ -1,5 +1,6 @@
-package capstone.api.domain.user;
+package capstone.api.repository;
 
+import capstone.api.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

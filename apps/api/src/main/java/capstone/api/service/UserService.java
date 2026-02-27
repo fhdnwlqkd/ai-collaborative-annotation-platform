@@ -1,6 +1,8 @@
-package capstone.api.domain.user;
+package capstone.api.service;
 
-import capstone.api.auth.JwtProvider;
+import capstone.api.core.auth.JwtProvider;
+import capstone.api.domain.User;
+import capstone.api.repository.UserRepository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

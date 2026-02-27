@@ -1,5 +1,5 @@
 //회원가입용
-package capstone.api.domain.user.dto;
+package capstone.api.dto;
 
 public record RegisterRequest(
         String email,

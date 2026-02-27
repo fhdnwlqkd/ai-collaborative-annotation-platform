@@ -1,8 +1,9 @@
-package capstone.api.domain.project;
+package capstone.api.controller;
 
 
-import capstone.api.domain.project.dto.CreateProjectRequest;
-import capstone.api.domain.project.dto.ProjectResponse;
+import capstone.api.service.ProjectService;
+import capstone.api.dto.CreateProjectRequest;
+import capstone.api.dto.ProjectResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -1,5 +1,5 @@
 //로그인용
-package capstone.api.domain.user.dto;
+package capstone.api.dto;
 
 public record LoginRequest (
         String email,

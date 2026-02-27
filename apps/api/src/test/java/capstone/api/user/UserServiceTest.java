@@ -1,5 +1,8 @@
 package capstone.api.user;
 
+import capstone.api.domain.User;
+import capstone.api.repository.UserRepository;
+import capstone.api.service.UserService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -7,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.context.ActiveProfiles;
-import capstone.api.domain.user.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

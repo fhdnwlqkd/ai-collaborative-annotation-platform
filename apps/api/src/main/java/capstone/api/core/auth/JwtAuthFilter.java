@@ -1,4 +1,4 @@
-package capstone.api.auth;
+package capstone.api.core.auth;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

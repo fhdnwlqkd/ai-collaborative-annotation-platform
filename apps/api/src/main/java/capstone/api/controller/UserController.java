@@ -1,8 +1,11 @@
-package capstone.api.domain.user;
+package capstone.api.controller;
 
-import capstone.api.domain.user.dto.LoginRequest;
-import capstone.api.domain.user.dto.LoginResponse;
-import capstone.api.domain.user.dto.RegisterRequest;
+import capstone.api.domain.User;
+import capstone.api.service.UserService;
+import capstone.api.dto.LoginRequest;
+import capstone.api.dto.LoginResponse;
+import capstone.api.dto.RegisterRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,13 +13,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("api/v1/users")
 public class UserController {
     private final UserService userService;
-
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
 
     @PostMapping("/register")
     public ResponseEntity<String> registerLocal(@RequestBody RegisterRequest request){

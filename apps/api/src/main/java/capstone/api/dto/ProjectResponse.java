@@ -1,6 +1,6 @@
-package capstone.api.domain.project.dto;
+package capstone.api.dto;
 
-import capstone.api.domain.project.Project;
+import capstone.api.domain.Project;
 
 import java.time.Instant;
 

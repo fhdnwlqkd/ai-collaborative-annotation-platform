@@ -1,4 +1,4 @@
-package capstone.api.domain.project;
+package capstone.api.domain;
 
 import java.io.Serializable;
 import java.util.Objects;

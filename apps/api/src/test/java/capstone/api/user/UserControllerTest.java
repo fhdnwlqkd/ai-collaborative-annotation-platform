@@ -1,7 +1,7 @@
 package capstone.api.user;
 
-import capstone.api.domain.user.dto.LoginRequest;
-import capstone.api.domain.user.dto.RegisterRequest;
+import capstone.api.dto.LoginRequest;
+import capstone.api.dto.RegisterRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
