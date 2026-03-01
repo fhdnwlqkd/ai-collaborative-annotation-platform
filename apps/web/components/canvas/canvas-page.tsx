@@ -404,6 +404,7 @@ export function CanvasPage({
     drawPoints,
     tool,
     initialTask.fileName,
+    isLocked,
   ]);
 
   useEffect(() => {
