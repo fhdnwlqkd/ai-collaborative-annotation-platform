@@ -1,6 +1,11 @@
 package capstone.api.core.config;
 
 import capstone.api.core.auth.JwtAuthFilter;
+import capstone.api.core.auth.RestAccessDeniedHandler;
+import capstone.api.core.auth.RestAuthenticationEntryPoint;
+import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NullMarked;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,10 +24,11 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
-
     private final JwtAuthFilter jwtAuthFilter;
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter){ this.jwtAuthFilter = jwtAuthFilter;}
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,9 +43,13 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/users/register", "/api/v1/users/login").permitAll() // 가입/로그인은 토큰 없이 통과
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger도 토큰 없이 통과, 운영 시에는 막지만 개발 편의 위해 열어둠
                         .anyRequest().authenticated() // 그 외의 모든 API는 토큰 검사
                 )
-
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(restAuthenticationEntryPoint)
+                        .accessDeniedHandler(restAccessDeniedHandler)
+                )
                 // 아이디/비번 검사 전에, JWT 먼저 감사
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -56,10 +66,5 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 }

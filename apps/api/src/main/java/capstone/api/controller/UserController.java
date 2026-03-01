@@ -1,10 +1,10 @@
 package capstone.api.controller;
 
-import capstone.api.domain.User;
+import capstone.api.controller.mapper.UserDtoMapper;
+import capstone.api.core.api.ApiResponse;
+import capstone.api.dto.UserDto;
 import capstone.api.service.UserService;
-import capstone.api.dto.LoginRequest;
-import capstone.api.dto.LoginResponse;
-import capstone.api.dto.RegisterRequest;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,28 +17,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("api/v1/users")
 public class UserController {
     private final UserService userService;
+    private final UserDtoMapper userMapper;
 
+    @Operation(summary = "회원가입", description = "이메일과 비밀번호로 회원가입을 진행합니다.")
     @PostMapping("/register")
-    public ResponseEntity<String> registerLocal(@RequestBody RegisterRequest request){
-        try{
-            User newUser = userService.registerLocalUser(
-                    request.email(),
-                    request.password(),
-                    request.name()
-            );
-            return ResponseEntity.ok("회원가입 성공. 생성된 유저 ID : " + newUser.getId());
-        } catch(IllegalArgumentException e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<UserDto.UserResponse>> registerLocal(@RequestBody UserDto.RegisterRequest request){
+        var command = userMapper.toCommand(request);
+        var result = userService.registerLocalUser(command);
+        return ResponseEntity.ok(ApiResponse.success(userMapper.from(result)));
     }
 
+    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        try {
-            String token = userService.login(request.email(), request.password());
-            return ResponseEntity.ok(new LoginResponse(token));
-        } catch (IllegalArgumentException e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<UserDto.LoginResponse>> login(@RequestBody UserDto.LoginRequest request){
+        var command = userMapper.toCommand(request);
+        var result = userService.login(command);
+        return ResponseEntity.ok(ApiResponse.success(userMapper.from(result)));
     }
 }

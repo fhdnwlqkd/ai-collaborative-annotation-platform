@@ -19,46 +19,51 @@ public class JwtProvider {
 
     // application.yml에서 비밀키와 만료시간을 가져오기
     public JwtProvider(
-            @Value("${jwt.secret:your-default-very-long-secret-key-for-local-development-12345}") String secret,
-            @Value("${jwt.expiration:86400000}") long expirationTime // 기본값 하루(24시간)
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration}") long expirationTime // 기본값 하루(24시간)
     ) {
         // 비밀문자열을 암호화 키 객체로 변환
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationTime = expirationTime;
     }
 
-    // JWT 토큰 생성
-    public String generateToken(Long userId, String email) {
+    public String generateToken(String externalId, String email) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationTime);
 
-        return Jwts.builder()
-                .subject(String.valueOf(userId))
+        var builder = Jwts.builder()
+                .subject(externalId)
                 .claim("email", email)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(secretKey)
-                .compact();
+                .signWith(secretKey);
+
+        return builder.compact();
     }
 
-    // 토큰에서 유저 ID 꺼내기
-    public Long getUserIdFromToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(secretKey) // 우리 서버 키로 만든게 맞는지 먼저 확인
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+    public String getExternalIdFromToken(String token) {
+        return parseClaims(token).getSubject();
+    }
 
-        return Long.parseLong(claims.getSubject()); // subject에 넣어둔 userId 반환
+    public String getEmailFromToken(String token) {
+        return parseClaims(token).get("email").toString();
     }
 
     // 토큰이 유효한지 검증
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
+            parseClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }
