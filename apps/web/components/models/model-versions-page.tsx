@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -13,14 +13,14 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Star,
   Plus,
@@ -34,8 +34,8 @@ import {
   AlertTriangle,
   Globe,
   Layers,
-} from "lucide-react"
-import { type ModelVersion, MOCK_MODELS } from "@/lib/store"
+} from "lucide-react";
+import { type ModelVersion, MOCK_MODELS } from "@/lib/store";
 
 const STATUS_CONFIG: Record<
   ModelVersion["status"],
@@ -44,59 +44,61 @@ const STATUS_CONFIG: Record<
   QUEUED: {
     label: "Queued",
     class: "bg-secondary text-secondary-foreground border-border",
-    icon: <Clock className="w-3 h-3" />,
+    icon: <Clock className="h-3 w-3" />,
   },
   RUNNING: {
     label: "Running",
     class: "bg-primary/15 text-primary border-primary/30",
-    icon: <Loader2 className="w-3 h-3 animate-spin" />,
+    icon: <Loader2 className="h-3 w-3 animate-spin" />,
   },
   SUCCESS: {
     label: "Success",
     class: "bg-teal/15 text-teal border-teal/30",
-    icon: <CheckCircle2 className="w-3 h-3" />,
+    icon: <CheckCircle2 className="h-3 w-3" />,
   },
   FAIL: {
     label: "Failed",
     class: "bg-destructive/15 text-destructive border-destructive/30",
-    icon: <XCircle className="w-3 h-3" />,
+    icon: <XCircle className="h-3 w-3" />,
   },
-}
+};
 
 export function ModelVersionsPage({
   projectId,
   confirmedCount,
 }: {
-  projectId: string
-  confirmedCount: number
+  projectId: string;
+  confirmedCount: number;
 }) {
   const [models, setModels] = useState<ModelVersion[]>(
-    MOCK_MODELS.filter((m) => m.projectId === projectId)
-  )
-  const [selected, setSelected] = useState<string | null>(models[0]?.id ?? null)
-  const [showTrain, setShowTrain] = useState(false)
-  const [trainName, setTrainName] = useState("")
-  const [trainBase, setTrainBase] = useState("YOLOv8n")
-  const [isTraining, setIsTraining] = useState(false)
+    MOCK_MODELS.filter((m) => m.projectId === projectId),
+  );
+  const [selected, setSelected] = useState<string | null>(
+    models[0]?.id ?? null,
+  );
+  const [showTrain, setShowTrain] = useState(false);
+  const [trainName, setTrainName] = useState("");
+  const [trainBase, setTrainBase] = useState("YOLOv8n");
+  const [isTraining, setIsTraining] = useState(false);
 
-  const selectedModel = models.find((m) => m.id === selected)
-  const activeModel = models.find((m) => m.isActive)
-  const baseModels = models.filter((m) => m.modelType === "base")
-  const fineTunedModels = models.filter((m) => m.modelType === "fine-tuned")
+  const selectedModel = models.find((m) => m.id === selected);
+  const activeModel = models.find((m) => m.isActive);
+  const baseModels = models.filter((m) => m.modelType === "base");
+  const fineTunedModels = models.filter((m) => m.modelType === "fine-tuned");
 
   function handleSetActive(id: string) {
     setModels((prev) =>
       prev.map((m) => ({
         ...m,
         isActive: m.id === id,
-      }))
-    )
+      })),
+    );
   }
 
   function handleTrainNew(e: React.FormEvent) {
-    e.preventDefault()
-    if (!trainName) return
-    setIsTraining(true)
+    e.preventDefault();
+    if (!trainName) return;
+    setIsTraining(true);
 
     const newModel: ModelVersion = {
       id: `m-${Date.now()}`,
@@ -110,214 +112,241 @@ export function ModelVersionsPage({
       mAP: null,
       trainedAt: new Date().toISOString().split("T")[0],
       confirmedTasksUsed: confirmedCount,
-    }
+    };
 
-    setModels((prev) => [...prev, newModel])
-    setSelected(newModel.id)
+    setModels((prev) => [...prev, newModel]);
+    setSelected(newModel.id);
 
     // Simulate QUEUED -> RUNNING -> SUCCESS
     setTimeout(() => {
       setModels((prev) =>
-        prev.map((m) => (m.id === newModel.id ? { ...m, status: "RUNNING" } : m))
-      )
+        prev.map((m) =>
+          m.id === newModel.id ? { ...m, status: "RUNNING" } : m,
+        ),
+      );
       setTimeout(() => {
         setModels((prev) =>
           prev.map((m) =>
-            m.id === newModel.id
-              ? { ...m, status: "SUCCESS", mAP: 0.82 }
-              : m
-          )
-        )
-        setIsTraining(false)
-        setShowTrain(false)
-        setTrainName("")
-      }, 3000)
-    }, 1500)
+            m.id === newModel.id ? { ...m, status: "SUCCESS", mAP: 0.82 } : m,
+          ),
+        );
+        setIsTraining(false);
+        setShowTrain(false);
+        setTrainName("");
+      }, 3000);
+    }, 1500);
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-6 h-full">
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto h-full max-w-7xl px-6 py-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Model Versions</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Manage base models, fine-tuned versions, and set the active model for AI suggestions
+          <h2 className="text-foreground text-lg font-semibold">
+            Model Versions
+          </h2>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            Manage base models, fine-tuned versions, and set the active model
+            for AI suggestions
           </p>
         </div>
         <Button
           onClick={() => setShowTrain(true)}
           className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Fine-tune New Model
         </Button>
       </div>
 
       {/* Active Model Banner */}
       {activeModel && (
-        <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 mb-6 flex items-center gap-3">
-          <Star className="w-5 h-5 text-warning fill-warning shrink-0" />
+        <div className="bg-warning/10 border-warning/20 mb-6 flex items-center gap-3 rounded-lg border p-4">
+          <Star className="text-warning fill-warning h-5 w-5 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">
-              Active Model: <span className="text-warning">{activeModel.name}</span>
+            <p className="text-foreground text-sm font-medium">
+              Active Model:{" "}
+              <span className="text-warning">{activeModel.name}</span>
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               This model is used for AI suggestions across the project
             </p>
           </div>
           {activeModel.mAP !== null && (
-            <Badge variant="outline" className="border-warning/30 text-warning text-xs">
+            <Badge
+              variant="outline"
+              className="border-warning/30 text-warning text-xs"
+            >
               mAP {activeModel.mAP.toFixed(2)}
             </Badge>
           )}
         </div>
       )}
 
-      <div className="flex gap-6 h-[calc(100vh-320px)]">
+      <div className="flex h-[calc(100vh-320px)] gap-6">
         {/* Model List */}
-        <div className="w-80 shrink-0 border border-border rounded-lg bg-card overflow-hidden flex flex-col">
+        <div className="border-border bg-card flex w-80 shrink-0 flex-col overflow-hidden rounded-lg border">
           {/* Base Models Section */}
-          <div className="px-4 py-3 border-b border-border bg-secondary/30">
+          <div className="border-border bg-secondary/30 border-b px-4 py-3">
             <div className="flex items-center gap-2">
-              <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <Globe className="text-muted-foreground h-3.5 w-3.5" />
+              <h3 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Base Models ({baseModels.length})
               </h3>
             </div>
           </div>
-          <div className="p-2 flex flex-col gap-1 border-b border-border">
+          <div className="border-border flex flex-col gap-1 border-b p-2">
             {baseModels.map((model) => {
-              const cfg = STATUS_CONFIG[model.status]
+              const cfg = STATUS_CONFIG[model.status];
               return (
                 <button
                   key={model.id}
                   onClick={() => setSelected(model.id)}
-                  className={`w-full text-left p-3 rounded-md transition-colors ${
+                  className={`w-full rounded-md p-3 text-left transition-colors ${
                     model.id === selected
-                      ? "bg-secondary ring-1 ring-primary/50"
+                      ? "bg-secondary ring-primary/50 ring-1"
                       : "hover:bg-secondary/50"
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="mb-1.5 flex items-center gap-2">
                     {model.isActive && (
-                      <Star className="w-3.5 h-3.5 text-warning fill-warning shrink-0" />
+                      <Star className="text-warning fill-warning h-3.5 w-3.5 shrink-0" />
                     )}
                     {model.isGlobalDefault && (
-                      <Globe className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <Globe className="text-primary h-3.5 w-3.5 shrink-0" />
                     )}
-                    <span className="text-sm font-medium text-foreground truncate">
+                    <span className="text-foreground truncate text-sm font-medium">
                       {model.name}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 gap-1">
+                    <Badge
+                      variant="outline"
+                      className="bg-primary/10 text-primary border-primary/30 gap-1 text-[10px]"
+                    >
                       Base
                     </Badge>
                     {model.isGlobalDefault && (
-                      <span className="text-[10px] text-muted-foreground">Global Default</span>
+                      <span className="text-muted-foreground text-[10px]">
+                        Global Default
+                      </span>
                     )}
                   </div>
                 </button>
-              )
+              );
             })}
           </div>
 
           {/* Fine-tuned Section */}
-          <div className="px-4 py-3 border-b border-border bg-secondary/30">
+          <div className="border-border bg-secondary/30 border-b px-4 py-3">
             <div className="flex items-center gap-2">
-              <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <Layers className="text-muted-foreground h-3.5 w-3.5" />
+              <h3 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Fine-tuned ({fineTunedModels.length})
               </h3>
             </div>
           </div>
           <ScrollArea className="flex-1">
-            <div className="p-2 flex flex-col gap-1">
+            <div className="flex flex-col gap-1 p-2">
               {fineTunedModels.map((model) => {
-                const cfg = STATUS_CONFIG[model.status]
+                const cfg = STATUS_CONFIG[model.status];
                 return (
                   <button
                     key={model.id}
                     onClick={() => setSelected(model.id)}
-                    className={`w-full text-left p-3 rounded-md transition-colors ${
+                    className={`w-full rounded-md p-3 text-left transition-colors ${
                       model.id === selected
-                        ? "bg-secondary ring-1 ring-primary/50"
+                        ? "bg-secondary ring-primary/50 ring-1"
                         : "hover:bg-secondary/50"
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1.5">
+                    <div className="mb-1.5 flex items-center gap-2">
                       {model.isActive && (
-                        <Star className="w-3.5 h-3.5 text-warning fill-warning shrink-0" />
+                        <Star className="text-warning fill-warning h-3.5 w-3.5 shrink-0" />
                       )}
-                      <span className="text-sm font-medium text-foreground truncate">
+                      <span className="text-foreground truncate text-sm font-medium">
                         {model.name}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={`text-[10px] ${cfg.class} gap-1`}>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${cfg.class} gap-1`}
+                      >
                         {cfg.icon}
                         {cfg.label}
                       </Badge>
                       {model.mAP !== null && (
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-muted-foreground text-[10px]">
                           mAP: {model.mAP.toFixed(2)}
                         </span>
                       )}
                     </div>
                   </button>
-                )
+                );
               })}
             </div>
           </ScrollArea>
         </div>
 
         {/* Detail Panel */}
-        <div className="flex-1 border border-border rounded-lg bg-card overflow-hidden">
+        <div className="border-border bg-card flex-1 overflow-hidden rounded-lg border">
           {selectedModel ? (
             <div className="p-6">
-              <div className="flex items-start justify-between mb-6">
+              <div className="mb-6 flex items-start justify-between">
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="mb-2 flex items-center gap-2">
                     {selectedModel.isActive && (
-                      <Star className="w-4 h-4 text-warning fill-warning" />
+                      <Star className="text-warning fill-warning h-4 w-4" />
                     )}
                     {selectedModel.isGlobalDefault && (
-                      <Globe className="w-4 h-4 text-primary" />
+                      <Globe className="text-primary h-4 w-4" />
                     )}
-                    <h3 className="text-lg font-semibold text-foreground">
+                    <h3 className="text-foreground text-lg font-semibold">
                       {selectedModel.name}
                     </h3>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={`${STATUS_CONFIG[selectedModel.status].class} gap-1`}>
+                    <Badge
+                      variant="outline"
+                      className={`${STATUS_CONFIG[selectedModel.status].class} gap-1`}
+                    >
                       {STATUS_CONFIG[selectedModel.status].icon}
                       {STATUS_CONFIG[selectedModel.status].label}
                     </Badge>
-                    <Badge variant="outline" className={`text-xs ${
-                      selectedModel.modelType === "base"
-                        ? "bg-primary/10 text-primary border-primary/30"
-                        : "bg-teal/10 text-teal border-teal/30"
-                    }`}>
-                      {selectedModel.modelType === "base" ? "Base Model" : "Fine-tuned"}
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${
+                        selectedModel.modelType === "base"
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-teal/10 text-teal border-teal/30"
+                      }`}
+                    >
+                      {selectedModel.modelType === "base"
+                        ? "Base Model"
+                        : "Fine-tuned"}
                     </Badge>
                     {selectedModel.isGlobalDefault && (
-                      <Badge variant="outline" className="bg-secondary text-muted-foreground border-border text-xs">
+                      <Badge
+                        variant="outline"
+                        className="bg-secondary text-muted-foreground border-border text-xs"
+                      >
                         Global Default
                       </Badge>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {!selectedModel.isActive && selectedModel.status === "SUCCESS" && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleSetActive(selectedModel.id)}
-                      className="bg-warning text-warning-foreground hover:bg-warning/90"
-                    >
-                      <Star className="w-4 h-4 mr-1" />
-                      Set Active
-                    </Button>
-                  )}
+                  {!selectedModel.isActive &&
+                    selectedModel.status === "SUCCESS" && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleSetActive(selectedModel.id)}
+                        className="bg-warning text-warning-foreground hover:bg-warning/90"
+                      >
+                        <Star className="mr-1 h-4 w-4" />
+                        Set Active
+                      </Button>
+                    )}
                   {selectedModel.isActive && (
                     <Badge className="bg-warning/15 text-warning border-warning/30">
                       Active Model
@@ -327,29 +356,31 @@ export function ModelVersionsPage({
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-secondary/50 rounded-lg p-4 border border-border">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <Brain className="w-4 h-4" />
+                <div className="bg-secondary/50 border-border rounded-lg border p-4">
+                  <div className="text-muted-foreground mb-2 flex items-center gap-2 text-sm">
+                    <Brain className="h-4 w-4" />
                     Base Model
                   </div>
-                  <p className="text-foreground font-medium">{selectedModel.baseModel}</p>
+                  <p className="text-foreground font-medium">
+                    {selectedModel.baseModel}
+                  </p>
                 </div>
-                <div className="bg-secondary/50 rounded-lg p-4 border border-border">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <BarChart3 className="w-4 h-4" />
+                <div className="bg-secondary/50 border-border rounded-lg border p-4">
+                  <div className="text-muted-foreground mb-2 flex items-center gap-2 text-sm">
+                    <BarChart3 className="h-4 w-4" />
                     mAP Score
                   </div>
                   <p className="text-foreground font-medium">
                     {selectedModel.mAP !== null
                       ? selectedModel.mAP.toFixed(3)
                       : selectedModel.modelType === "base"
-                      ? "N/A (Base)"
-                      : "Pending..."}
+                        ? "N/A (Base)"
+                        : "Pending..."}
                   </p>
                 </div>
-                <div className="bg-secondary/50 rounded-lg p-4 border border-border">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <Database className="w-4 h-4" />
+                <div className="bg-secondary/50 border-border rounded-lg border p-4">
+                  <div className="text-muted-foreground mb-2 flex items-center gap-2 text-sm">
+                    <Database className="h-4 w-4" />
                     Training Data
                   </div>
                   <p className="text-foreground font-medium">
@@ -358,10 +389,12 @@ export function ModelVersionsPage({
                       : `${selectedModel.confirmedTasksUsed} confirmed tasks`}
                   </p>
                 </div>
-                <div className="bg-secondary/50 rounded-lg p-4 border border-border">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <Clock className="w-4 h-4" />
-                    {selectedModel.modelType === "base" ? "Availability" : "Trained At"}
+                <div className="bg-secondary/50 border-border rounded-lg border p-4">
+                  <div className="text-muted-foreground mb-2 flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4" />
+                    {selectedModel.modelType === "base"
+                      ? "Availability"
+                      : "Trained At"}
                   </div>
                   <p className="text-foreground font-medium">
                     {selectedModel.modelType === "base"
@@ -372,7 +405,7 @@ export function ModelVersionsPage({
               </div>
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+            <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
               Select a model to view details
             </div>
           )}
@@ -383,7 +416,9 @@ export function ModelVersionsPage({
       <Dialog open={showTrain} onOpenChange={setShowTrain}>
         <DialogContent className="bg-card border-border text-card-foreground sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Fine-tune New Model</DialogTitle>
+            <DialogTitle className="text-foreground">
+              Fine-tune New Model
+            </DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Create a new fine-tuned model from confirmed annotation data
             </DialogDescription>
@@ -399,7 +434,9 @@ export function ModelVersionsPage({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label className="text-foreground">Base Model (for fine-tuning)</Label>
+              <Label className="text-foreground">
+                Base Model (for fine-tuning)
+              </Label>
               <Select value={trainBase} onValueChange={setTrainBase}>
                 <SelectTrigger className="bg-input border-border text-foreground">
                   <SelectValue />
@@ -412,14 +449,22 @@ export function ModelVersionsPage({
                 </SelectContent>
               </Select>
             </div>
-            <div className="bg-warning/10 border border-warning/20 rounded-md p-3 flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground">
-                Training will use a snapshot of <strong className="text-foreground">{confirmedCount}</strong> CONFIRMED tasks. Only confirmed tasks are included in the training dataset.
+            <div className="bg-warning/10 border-warning/20 flex items-start gap-2 rounded-md border p-3">
+              <AlertTriangle className="text-warning mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-muted-foreground text-xs">
+                Training will use a snapshot of{" "}
+                <strong className="text-foreground">{confirmedCount}</strong>{" "}
+                CONFIRMED tasks. Only confirmed tasks are included in the
+                training dataset.
               </p>
             </div>
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setShowTrain(false)} className="text-muted-foreground">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowTrain(false)}
+                className="text-muted-foreground"
+              >
                 Cancel
               </Button>
               <Button
@@ -429,7 +474,7 @@ export function ModelVersionsPage({
               >
                 {isTraining ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                     Training...
                   </>
                 ) : (
@@ -441,5 +486,5 @@ export function ModelVersionsPage({
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

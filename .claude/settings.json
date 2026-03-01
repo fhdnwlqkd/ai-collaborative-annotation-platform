@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path // empty'); if [ -z \"$FILE\" ]; then exit 0; fi; WEBDIR=\"${CLAUDE_PROJECT_DIR}/apps/web\"; if echo \"$FILE\" | grep -qE '\\.(js|jsx|ts|tsx)$'; then cd \"$WEBDIR\" && npx eslint --fix \"$FILE\" 2>/dev/null; npx prettier --write \"$FILE\" 2>/dev/null; exit 0; fi; if echo \"$FILE\" | grep -qE '\\.(json|css|md|html)$'; then cd \"$WEBDIR\" && npx prettier --write \"$FILE\" 2>/dev/null; exit 0; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
