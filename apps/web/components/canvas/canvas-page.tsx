@@ -49,6 +49,47 @@ import {
 
 type CanvasTool = "select" | "bbox" | "polygon" | "pan" | "zoomin" | "zoomout";
 type SuggestStatus = "idle" | "queued" | "running" | "ready";
+type ImageRect = { x: number; y: number; width: number; height: number };
+
+const CANVAS_PADDING = 40;
+
+function computeImageRect(
+  canvasWidth: number,
+  canvasHeight: number,
+  imgW: number,
+  imgH: number,
+): ImageRect {
+  const availW = canvasWidth - CANVAS_PADDING * 2;
+  const availH = canvasHeight - CANVAS_PADDING * 2;
+  const scale = Math.min(availW / imgW, availH / imgH);
+  const drawW = imgW * scale;
+  const drawH = imgH * scale;
+  const offsetX = (canvasWidth - drawW) / 2;
+  const offsetY = (canvasHeight - drawH) / 2;
+  return { x: offsetX, y: offsetY, width: drawW, height: drawH };
+}
+
+function normalizedToWorld(
+  nx: number,
+  ny: number,
+  imageRect: ImageRect,
+): { x: number; y: number } {
+  return {
+    x: imageRect.x + nx * imageRect.width,
+    y: imageRect.y + ny * imageRect.height,
+  };
+}
+
+function worldToNormalized(
+  wx: number,
+  wy: number,
+  imageRect: ImageRect,
+): { x: number; y: number } {
+  return {
+    x: (wx - imageRect.x) / imageRect.width,
+    y: (wy - imageRect.y) / imageRect.height,
+  };
+}
 
 export function CanvasPage({
   task: initialTask,
@@ -85,6 +126,11 @@ export function CanvasPage({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawPoints, setDrawPoints] = useState<{ x: number; y: number }[]>([]);
+  const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
+  const [imageStatus, setImageStatus] = useState<
+    "loading" | "loaded" | "error"
+  >("loading");
+  const imageRectRef = useRef<ImageRect | null>(null);
 
   // Internal Drag State
   const [draggingMode, setDraggingMode] = useState<
@@ -107,6 +153,33 @@ export function CanvasPage({
   const [initialPoints, setInitialPoints] = useState<
     { x: number; y: number }[] | null
   >(null);
+
+  // Load image from task URL
+  useEffect(() => {
+    let cancelled = false;
+    setImageStatus("loading");
+    setLoadedImage(null);
+
+    const img = new Image();
+    img.onload = () => {
+      if (!cancelled) {
+        setLoadedImage(img);
+        setImageStatus("loaded");
+      }
+    };
+    img.onerror = () => {
+      if (!cancelled) {
+        setImageStatus("error");
+      }
+    };
+    img.src = initialTask.imageUrl;
+
+    return () => {
+      cancelled = true;
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [initialTask.imageUrl]);
 
   const screenToWorld = useCallback(
     (clientX: number, clientY: number) => {
@@ -156,15 +229,18 @@ export function CanvasPage({
     ann: Annotation,
   ) => {
     if (ann.type !== "bbox") return null;
-    const minX = Math.min(...ann.points.map((p) => p.x));
-    const minY = Math.min(...ann.points.map((p) => p.y));
-    const maxX = Math.max(...ann.points.map((p) => p.x));
-    const maxY = Math.max(...ann.points.map((p) => p.y));
+    const imgRect = imageRectRef.current;
+    if (!imgRect) return null;
+    const wp = ann.points.map((p) => normalizedToWorld(p.x, p.y, imgRect));
+    const minX = Math.min(...wp.map((p) => p.x));
+    const minY = Math.min(...wp.map((p) => p.y));
+    const maxX = Math.max(...wp.map((p) => p.x));
+    const maxY = Math.max(...wp.map((p) => p.y));
     const handles = [
-      { x: minX, y: minY }, // 0: TL
-      { x: maxX, y: minY }, // 1: TR
-      { x: maxX, y: maxY }, // 2: BR
-      { x: minX, y: maxY }, // 3: BL
+      { x: minX, y: minY },
+      { x: maxX, y: minY },
+      { x: maxX, y: maxY },
+      { x: minX, y: maxY },
     ];
     for (let i = 0; i < handles.length; i++) {
       const h = handles[i];
@@ -180,8 +256,10 @@ export function CanvasPage({
     ann: Annotation,
   ) => {
     if (ann.type !== "polygon") return null;
+    const imgRect = imageRectRef.current;
+    if (!imgRect) return null;
     for (let i = 0; i < ann.points.length; i++) {
-      const v = ann.points[i];
+      const v = normalizedToWorld(ann.points[i].x, ann.points[i].y, imgRect);
       const dx = (v.x - worldPos.x) * zoom;
       const dy = (v.y - worldPos.y) * zoom;
       if (Math.sqrt(dx * dx + dy * dy) < 8) return i;
@@ -191,20 +269,24 @@ export function CanvasPage({
 
   const findHitAnnotation = useCallback(
     (worldPos: { x: number; y: number }) => {
+      const imgRect = imageRectRef.current;
+      if (!imgRect) return null;
+      const normPos = worldToNormalized(worldPos.x, worldPos.y, imgRect);
+
       for (let i = annotations.length - 1; i >= 0; i--) {
         const ann = annotations[i];
-        if (ann.type === "bbox" && isPointInBBox(worldPos, ann.points))
+        if (ann.type === "bbox" && isPointInBBox(normPos, ann.points))
           return ann.id;
-        if (ann.type === "polygon" && isPointInPolygon(worldPos, ann.points))
+        if (ann.type === "polygon" && isPointInPolygon(normPos, ann.points))
           return ann.id;
       }
       if (showSuggestionReview) {
         for (let i = suggestions.length - 1; i >= 0; i--) {
           const s = suggestions[i];
           if (!selectedSuggestions.has(s.id)) continue;
-          if (s.type === "bbox" && isPointInBBox(worldPos, s.points))
+          if (s.type === "bbox" && isPointInBBox(normPos, s.points))
             return s.id;
-          if (s.type === "polygon" && isPointInPolygon(worldPos, s.points))
+          if (s.type === "polygon" && isPointInPolygon(normPos, s.points))
             return s.id;
         }
       }
@@ -222,6 +304,7 @@ export function CanvasPage({
   const isLocked = task.status === "CONFIRMED";
 
   // Draw canvas
+  // Image Fitting Principle: 이미지는 종횡비를 유지하면서 뷰포트에 fit하되, 최소 마진을 확보한다 (object-fit: contain)
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -236,124 +319,179 @@ export function CanvasPage({
     ctx.translate(pan.x, pan.y);
     ctx.scale(zoom, zoom);
 
-    // Background grid
+    // Viewport bounds in world coordinates (inverse of translate+scale)
+    const vx0 = -pan.x / zoom;
+    const vy0 = -pan.y / zoom;
+    const vx1 = (w - pan.x) / zoom;
+    const vy1 = (h - pan.y) / zoom;
+
+    // Background grid — covers visible viewport regardless of pan/zoom
     ctx.fillStyle = "#0F172A";
-    ctx.fillRect(0, 0, w / zoom, h / zoom);
+    ctx.fillRect(vx0, vy0, vx1 - vx0, vy1 - vy0);
 
     const gridSize = 40;
     ctx.strokeStyle = "#1E293B";
     ctx.lineWidth = 0.5;
-    for (let x = 0; x < w / zoom; x += gridSize) {
+    const gx0 = Math.floor(vx0 / gridSize) * gridSize;
+    const gy0 = Math.floor(vy0 / gridSize) * gridSize;
+    for (let gx = gx0; gx <= vx1; gx += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h / zoom);
+      ctx.moveTo(gx, vy0);
+      ctx.lineTo(gx, vy1);
       ctx.stroke();
     }
-    for (let y = 0; y < h / zoom; y += gridSize) {
+    for (let gy = gy0; gy <= vy1; gy += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w / zoom, y);
+      ctx.moveTo(vx0, gy);
+      ctx.lineTo(vx1, gy);
       ctx.stroke();
     }
 
-    // Mock image placeholder
-    ctx.fillStyle = "#1a2338";
-    ctx.fillRect(40, 40, 560, 360);
-    ctx.strokeStyle = "#334155";
-    ctx.strokeRect(40, 40, 560, 360);
-    ctx.fillStyle = "#475569";
-    ctx.font = "14px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText(initialTask.fileName, 320, 225);
+    // Image rendering (imageRect is zoom=1 기준 고정, ctx.scale(zoom)이 스케일링 담당)
+    if (imageStatus === "loaded" && loadedImage) {
+      const imageRect = computeImageRect(
+        w,
+        h,
+        loadedImage.naturalWidth,
+        loadedImage.naturalHeight,
+      );
+      imageRectRef.current = imageRect;
+      ctx.drawImage(
+        loadedImage,
+        imageRect.x,
+        imageRect.y,
+        imageRect.width,
+        imageRect.height,
+      );
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(
+        imageRect.x,
+        imageRect.y,
+        imageRect.width,
+        imageRect.height,
+      );
+    } else if (imageStatus === "loading") {
+      const vcx = (vx0 + vx1) / 2;
+      const vcy = (vy0 + vy1) / 2;
+      ctx.fillStyle = "#475569";
+      ctx.font = "14px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Loading image...", vcx, vcy);
+    } else if (imageStatus === "error") {
+      const vcx = (vx0 + vx1) / 2;
+      const vcy = (vy0 + vy1) / 2;
+      ctx.strokeStyle = "#EF4444";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        CANVAS_PADDING,
+        CANVAS_PADDING,
+        w - CANVAS_PADDING * 2,
+        h - CANVAS_PADDING * 2,
+      );
+      ctx.fillStyle = "#EF4444";
+      ctx.font = "14px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Failed to load image", vcx, vcy);
+    }
 
-    // Draw annotations
-    const allAnnotations = [...annotations];
-    if (showSuggestionReview) {
-      suggestions.forEach((s) => {
-        if (selectedSuggestions.has(s.id)) allAnnotations.push(s);
+    // Draw annotations (normalized → world conversion)
+    const imgRect = imageRectRef.current;
+    if (imgRect) {
+      const allAnnotations = [...annotations];
+      if (showSuggestionReview) {
+        suggestions.forEach((s) => {
+          if (selectedSuggestions.has(s.id)) allAnnotations.push(s);
+        });
+      }
+
+      allAnnotations.forEach((ann) => {
+        const isSelected = ann.id === selectedAnnotation;
+        ctx.strokeStyle = ann.color;
+        ctx.lineWidth = isSelected ? 3 : 2;
+        ctx.fillStyle = ann.color + "20";
+
+        const worldPoints = ann.points.map((p) =>
+          normalizedToWorld(p.x, p.y, imgRect),
+        );
+
+        if (ann.type === "bbox" && worldPoints.length >= 2) {
+          const minX = Math.min(...worldPoints.map((p) => p.x));
+          const minY = Math.min(...worldPoints.map((p) => p.y));
+          const maxX = Math.max(...worldPoints.map((p) => p.x));
+          const maxY = Math.max(...worldPoints.map((p) => p.y));
+          ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
+          ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+
+          ctx.fillStyle = ann.color;
+          const labelText = `${ann.label}${ann.confidence ? ` ${(ann.confidence * 100).toFixed(0)}%` : ""}`;
+          const textWidth = ctx.measureText(labelText).width + 8;
+          ctx.fillRect(minX, minY - 20, textWidth, 20);
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "11px sans-serif";
+          ctx.textAlign = "left";
+          ctx.fillText(labelText, minX + 4, minY - 6);
+        } else if (ann.type === "polygon" && worldPoints.length >= 3) {
+          ctx.beginPath();
+          ctx.moveTo(worldPoints[0].x, worldPoints[0].y);
+          for (let i = 1; i < worldPoints.length; i++) {
+            ctx.lineTo(worldPoints[i].x, worldPoints[i].y);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          const centroidX =
+            worldPoints.reduce((s, p) => s + p.x, 0) / worldPoints.length;
+          const centroidY =
+            worldPoints.reduce((s, p) => s + p.y, 0) / worldPoints.length;
+          ctx.fillStyle = ann.color;
+          const labelText = ann.label;
+          const tw = ctx.measureText(labelText).width + 8;
+          ctx.fillRect(centroidX - tw / 2, centroidY - 10, tw, 20);
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "11px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(labelText, centroidX, centroidY + 4);
+        }
+
+        // Draw handles for selected annotation
+        if (isSelected && !isLocked) {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.strokeStyle = ann.color;
+          ctx.lineWidth = 1;
+          if (ann.type === "bbox") {
+            const minX = Math.min(...worldPoints.map((p) => p.x));
+            const minY = Math.min(...worldPoints.map((p) => p.y));
+            const maxX = Math.max(...worldPoints.map((p) => p.x));
+            const maxY = Math.max(...worldPoints.map((p) => p.y));
+            const handles = [
+              { x: minX, y: minY },
+              { x: maxX, y: minY },
+              { x: maxX, y: maxY },
+              { x: minX, y: maxY },
+            ];
+            handles.forEach((hp) => {
+              ctx.beginPath();
+              ctx.arc(hp.x, hp.y, 4 / zoom, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+            });
+          } else if (ann.type === "polygon") {
+            worldPoints.forEach((p) => {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, 4 / zoom, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+            });
+          }
+        }
       });
     }
 
-    allAnnotations.forEach((ann) => {
-      const isSelected = ann.id === selectedAnnotation;
-      ctx.strokeStyle = ann.color;
-      ctx.lineWidth = isSelected ? 3 : 2;
-      ctx.fillStyle = ann.color + "20";
-
-      if (ann.type === "bbox" && ann.points.length >= 2) {
-        const minX = Math.min(...ann.points.map((p) => p.x));
-        const minY = Math.min(...ann.points.map((p) => p.y));
-        const maxX = Math.max(...ann.points.map((p) => p.x));
-        const maxY = Math.max(...ann.points.map((p) => p.y));
-        ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
-        ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-
-        ctx.fillStyle = ann.color;
-        const labelText = `${ann.label}${ann.confidence ? ` ${(ann.confidence * 100).toFixed(0)}%` : ""}`;
-        const textWidth = ctx.measureText(labelText).width + 8;
-        ctx.fillRect(minX, minY - 20, textWidth, 20);
-        ctx.fillStyle = "#FFFFFF";
-        ctx.font = "11px sans-serif";
-        ctx.textAlign = "left";
-        ctx.fillText(labelText, minX + 4, minY - 6);
-      } else if (ann.type === "polygon" && ann.points.length >= 3) {
-        ctx.beginPath();
-        ctx.moveTo(ann.points[0].x, ann.points[0].y);
-        for (let i = 1; i < ann.points.length; i++) {
-          ctx.lineTo(ann.points[i].x, ann.points[i].y);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        const centroidX =
-          ann.points.reduce((s, p) => s + p.x, 0) / ann.points.length;
-        const centroidY =
-          ann.points.reduce((s, p) => s + p.y, 0) / ann.points.length;
-        ctx.fillStyle = ann.color;
-        const labelText = ann.label;
-        const tw = ctx.measureText(labelText).width + 8;
-        ctx.fillRect(centroidX - tw / 2, centroidY - 10, tw, 20);
-        ctx.fillStyle = "#FFFFFF";
-        ctx.font = "11px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText(labelText, centroidX, centroidY + 4);
-      }
-
-      // Draw handles for selected annotation
-      if (isSelected && !isLocked) {
-        ctx.fillStyle = "#FFFFFF";
-        ctx.strokeStyle = ann.color;
-        ctx.lineWidth = 1;
-        if (ann.type === "bbox") {
-          const minX = Math.min(...ann.points.map((p) => p.x));
-          const minY = Math.min(...ann.points.map((p) => p.y));
-          const maxX = Math.max(...ann.points.map((p) => p.x));
-          const maxY = Math.max(...ann.points.map((p) => p.y));
-          const handles = [
-            { x: minX, y: minY },
-            { x: maxX, y: minY },
-            { x: maxX, y: maxY },
-            { x: minX, y: maxY },
-          ];
-          handles.forEach((h) => {
-            ctx.beginPath();
-            ctx.arc(h.x, h.y, 4 / zoom, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-          });
-        } else if (ann.type === "polygon") {
-          ann.points.forEach((p) => {
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 4 / zoom, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-          });
-        }
-      }
-    });
-
-    // Draw current drawing in progress
+    // Draw current drawing in progress (world coordinates)
     if (isDrawing && drawPoints.length > 0) {
       ctx.strokeStyle = "#3B82F6";
       ctx.lineWidth = 2;
@@ -372,24 +510,27 @@ export function CanvasPage({
       ctx.setLineDash([]);
     }
 
-    // Simulated live cursors
-    const cursorPositions = [
-      { x: 280, y: 180, user: ONLINE_USERS[1] },
-      { x: 420, y: 260, user: ONLINE_USERS[2] },
-    ];
-    cursorPositions.forEach(({ x, y, user }) => {
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + 2, y + 14);
-      ctx.lineTo(x + 7, y + 10);
-      ctx.closePath();
-      ctx.fillStyle = user.color;
-      ctx.fill();
-      ctx.fillStyle = user.color;
-      ctx.font = "10px sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(user.name, x + 12, y + 14);
-    });
+    // Simulated live cursors (positioned relative to image)
+    if (imgRect) {
+      const cursorPositions = [
+        { nx: 0.35, ny: 0.4, user: ONLINE_USERS[1] },
+        { nx: 0.65, ny: 0.55, user: ONLINE_USERS[2] },
+      ];
+      cursorPositions.forEach(({ nx, ny, user }) => {
+        const { x, y } = normalizedToWorld(nx, ny, imgRect);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 2, y + 14);
+        ctx.lineTo(x + 7, y + 10);
+        ctx.closePath();
+        ctx.fillStyle = user.color;
+        ctx.fill();
+        ctx.fillStyle = user.color;
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(user.name, x + 12, y + 14);
+      });
+    }
 
     ctx.restore();
   }, [
@@ -403,8 +544,9 @@ export function CanvasPage({
     isDrawing,
     drawPoints,
     tool,
-    initialTask.fileName,
     isLocked,
+    loadedImage,
+    imageStatus,
   ]);
 
   useEffect(() => {
@@ -482,22 +624,28 @@ export function CanvasPage({
         const first = drawPoints[0];
         const dist = Math.sqrt((x - first.x) ** 2 + (y - first.y) ** 2);
         if (drawPoints.length >= 3 && dist * zoom < 15) {
-          const newAnn: Annotation = {
-            id: `a-${Date.now()}`,
-            taskId: task.id,
-            label:
-              Object.keys(LABEL_COLORS)[
-                Math.floor(Math.random() * Object.keys(LABEL_COLORS).length)
-              ],
-            type: "polygon",
-            points: drawPoints,
-            color:
-              Object.values(LABEL_COLORS)[
-                Math.floor(Math.random() * Object.values(LABEL_COLORS).length)
-              ],
-            createdBy: "Alex Kim",
-          };
-          setAnnotations((prev) => [...prev, newAnn]);
+          const imgRect = imageRectRef.current;
+          if (imgRect) {
+            const normPoints = drawPoints.map((p) =>
+              worldToNormalized(p.x, p.y, imgRect),
+            );
+            const newAnn: Annotation = {
+              id: `a-${Date.now()}`,
+              taskId: task.id,
+              label:
+                Object.keys(LABEL_COLORS)[
+                  Math.floor(Math.random() * Object.keys(LABEL_COLORS).length)
+                ],
+              type: "polygon",
+              points: normPoints,
+              color:
+                Object.values(LABEL_COLORS)[
+                  Math.floor(Math.random() * Object.values(LABEL_COLORS).length)
+                ],
+              createdBy: "Alex Kim",
+            };
+            setAnnotations((prev) => [...prev, newAnn]);
+          }
           setIsDrawing(false);
           setDrawPoints([]);
         } else {
@@ -554,17 +702,22 @@ export function CanvasPage({
       }
     };
 
+    const imgRect = imageRectRef.current;
+    if (!imgRect) return;
+    const normDx = dx / imgRect.width;
+    const normDy = dy / imgRect.height;
+
     if (draggingMode === "move") {
       const newPoints = initialPoints.map((p) => ({
-        x: p.x + dx,
-        y: p.y + dy,
+        x: p.x + normDx,
+        y: p.y + normDy,
       }));
       updateAnnotationPoints(selectedAnnotation, newPoints);
     } else if (draggingMode === "vertex" && activeVertexIndex !== null) {
       const newPoints = [...initialPoints];
       newPoints[activeVertexIndex] = {
-        x: initialPoints[activeVertexIndex].x + dx,
-        y: initialPoints[activeVertexIndex].y + dy,
+        x: initialPoints[activeVertexIndex].x + normDx,
+        y: initialPoints[activeVertexIndex].y + normDy,
       };
       updateAnnotationPoints(selectedAnnotation, newPoints);
     } else if (draggingMode === "resize" && activeHandleIndex !== null) {
@@ -579,17 +732,17 @@ export function CanvasPage({
         newMaxY = maxY;
 
       if (activeHandleIndex === 0) {
-        newMinX = minX + dx;
-        newMinY = minY + dy;
+        newMinX = minX + normDx;
+        newMinY = minY + normDy;
       } else if (activeHandleIndex === 1) {
-        newMaxX = maxX + dx;
-        newMinY = minY + dy;
+        newMaxX = maxX + normDx;
+        newMinY = minY + normDy;
       } else if (activeHandleIndex === 2) {
-        newMaxX = maxX + dx;
-        newMaxY = maxY + dy;
+        newMaxX = maxX + normDx;
+        newMaxY = maxY + normDy;
       } else if (activeHandleIndex === 3) {
-        newMinX = minX + dx;
-        newMaxY = maxY + dy;
+        newMinX = minX + normDx;
+        newMaxY = maxY + normDy;
       }
 
       const pts = [
@@ -610,27 +763,32 @@ export function CanvasPage({
         Math.abs(worldPos.x - start.x) * zoom > 5 &&
         Math.abs(worldPos.y - start.y) * zoom > 5
       ) {
-        const newAnn: Annotation = {
-          id: `a-${Date.now()}`,
-          taskId: task.id,
-          label:
-            Object.keys(LABEL_COLORS)[
-              Math.floor(Math.random() * Object.keys(LABEL_COLORS).length)
+        const imgRect = imageRectRef.current;
+        if (imgRect) {
+          const normStart = worldToNormalized(start.x, start.y, imgRect);
+          const normEnd = worldToNormalized(worldPos.x, worldPos.y, imgRect);
+          const newAnn: Annotation = {
+            id: `a-${Date.now()}`,
+            taskId: task.id,
+            label:
+              Object.keys(LABEL_COLORS)[
+                Math.floor(Math.random() * Object.keys(LABEL_COLORS).length)
+              ],
+            type: "bbox",
+            points: [
+              { x: normStart.x, y: normStart.y },
+              { x: normEnd.x, y: normStart.y },
+              { x: normEnd.x, y: normEnd.y },
+              { x: normStart.x, y: normEnd.y },
             ],
-          type: "bbox",
-          points: [
-            { x: start.x, y: start.y },
-            { x: worldPos.x, y: start.y },
-            { x: worldPos.x, y: worldPos.y },
-            { x: start.x, y: worldPos.y },
-          ],
-          color:
-            Object.values(LABEL_COLORS)[
-              Math.floor(Math.random() * Object.values(LABEL_COLORS).length)
-            ],
-          createdBy: "Alex Kim",
-        };
-        setAnnotations((prev) => [...prev, newAnn]);
+            color:
+              Object.values(LABEL_COLORS)[
+                Math.floor(Math.random() * Object.values(LABEL_COLORS).length)
+              ],
+            createdBy: "Alex Kim",
+          };
+          setAnnotations((prev) => [...prev, newAnn]);
+        }
       }
       setIsDrawing(false);
       setDrawPoints([]);
@@ -655,10 +813,10 @@ export function CanvasPage({
             label: "car",
             type: "bbox",
             points: [
-              { x: 100, y: 160 },
-              { x: 220, y: 160 },
-              { x: 220, y: 260 },
-              { x: 100, y: 260 },
+              { x: 0.16, y: 0.4 },
+              { x: 0.34, y: 0.4 },
+              { x: 0.34, y: 0.65 },
+              { x: 0.16, y: 0.65 },
             ],
             color: "#0D9488",
             confidence: 0.89,
@@ -670,10 +828,10 @@ export function CanvasPage({
             label: "person",
             type: "bbox",
             points: [
-              { x: 340, y: 120 },
-              { x: 390, y: 120 },
-              { x: 390, y: 300 },
-              { x: 340, y: 300 },
+              { x: 0.53, y: 0.3 },
+              { x: 0.61, y: 0.3 },
+              { x: 0.61, y: 0.75 },
+              { x: 0.53, y: 0.75 },
             ],
             color: "#3B82F6",
             confidence: 0.76,
@@ -685,10 +843,10 @@ export function CanvasPage({
             label: "bicycle",
             type: "bbox",
             points: [
-              { x: 440, y: 200 },
-              { x: 520, y: 200 },
-              { x: 520, y: 300 },
-              { x: 440, y: 300 },
+              { x: 0.69, y: 0.5 },
+              { x: 0.81, y: 0.5 },
+              { x: 0.81, y: 0.75 },
+              { x: 0.69, y: 0.75 },
             ],
             color: "#8B5CF6",
             confidence: 0.62,

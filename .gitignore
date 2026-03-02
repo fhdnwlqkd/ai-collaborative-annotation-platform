@@ -11,6 +11,8 @@ apps/web/node_modules/
 apps/web/.next/
 apps/web/out/
 apps/web/dist/
+apps/web/next-env.d.ts
+apps/web/tsconfig.tsbuildinfo
 
 # Java / Gradle
 apps/api/.gradle/
