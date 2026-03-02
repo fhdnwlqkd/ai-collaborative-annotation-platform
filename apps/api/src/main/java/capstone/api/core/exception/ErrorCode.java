@@ -16,6 +16,11 @@ public enum ErrorCode {
     EMAIL_ALREADY_EXISTS("U002", "이미 사용 중인 이메일입니다.", HttpStatus.CONFLICT),
     INVALID_PASSWORD("U003", "비밀번호가 일치하지 않습니다.", HttpStatus.UNAUTHORIZED),
 
+    // project
+    PROJECT_NOT_FOUND("P001", "존재하지 않는 프로젝트입니다.", HttpStatus.NOT_FOUND),
+    INVALID_INVITE_CODE("P002", "유효하지 않은 초대 코드입니다.", HttpStatus.BAD_REQUEST),
+    ALREADY_PROJECT_MEMBER("P003", "이미 참여 중인 프로젝트입니다.", HttpStatus.CONFLICT),
+
     // Auth / Security
     UNAUTHORIZED("A001", "인증이 필요합니다.", HttpStatus.UNAUTHORIZED),
     FORBIDDEN("A002", "접근 권한이 없습니다.", HttpStatus.FORBIDDEN);
