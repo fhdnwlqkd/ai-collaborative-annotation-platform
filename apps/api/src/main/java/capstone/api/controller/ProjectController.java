@@ -1,10 +1,13 @@
 package capstone.api.controller;
 
 
+import capstone.api.dto.JoinProjectRequest;
 import capstone.api.service.ProjectService;
 import capstone.api.dto.CreateProjectRequest;
 import capstone.api.dto.ProjectResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,5 +29,12 @@ public class ProjectController {
 
         return projectService.createProject(userId, request);
     }
-    
+    @PostMapping("/join")
+    public ResponseEntity<String> joinProject(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody JoinProjectRequest request){
+        Long userId = Long.parseLong(userDetails.getUsername());
+        projectService.joinProject(userId, request);
+        return ResponseEntity.ok("프로젝트 참여에 성공했습니다.");
+    }
 }
