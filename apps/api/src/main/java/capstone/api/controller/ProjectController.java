@@ -1,6 +1,8 @@
 package capstone.api.controller;
 
 
+import capstone.api.contract.ProjectContract;
+import capstone.api.controller.mapper.ProjectDtoMapper;
 import capstone.api.core.api.ApiResponse;
 import capstone.api.dto.JoinProjectRequest;
 import capstone.api.service.ProjectService;
@@ -8,6 +10,7 @@ import capstone.api.dto.CreateProjectRequest;
 import capstone.api.dto.ProjectResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,22 +23,28 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ProjectController {
     private final ProjectService projectService;
+    private final ProjectDtoMapper projectDtoMapper;
 
     @PostMapping
-    public ApiResponse<ProjectResponse> createProject(
+    public ResponseEntity<ApiResponse<ProjectResponse>> createProject(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody CreateProjectRequest request) {
-        Long userId = Long.parseLong(userDetails.getUsername());
+        String externalId = userDetails.getUsername();
 
-        return ApiResponse.success(projectService.createProject(userId, request));
+        ProjectContract.ProjectResult result = projectService.createProject(
+                externalId,
+                projectDtoMapper.toCommand(request)
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(projectDtoMapper.from(result)));
     }
 
     @PostMapping("/join")
-    public ApiResponse<String> joinProject(
+    public ResponseEntity<ApiResponse<String>> joinProject(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody JoinProjectRequest request){
-        Long userId = Long.parseLong(userDetails.getUsername());
-        projectService.joinProject(userId, request);
-        return ApiResponse.success("프로젝트 참여에 성공했습니다.");
+        String externalId = userDetails.getUsername();
+        projectService.joinProject(externalId, projectDtoMapper.toCommand(request));
+        return ResponseEntity.ok(ApiResponse.success("프로젝트 참여에 성공했습니다."));
     }
 }
