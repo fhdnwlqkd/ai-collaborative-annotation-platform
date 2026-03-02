@@ -126,11 +126,20 @@ export function CanvasPage({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawPoints, setDrawPoints] = useState<{ x: number; y: number }[]>([]);
-  const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
-  const [imageStatus, setImageStatus] = useState<
-    "loading" | "loaded" | "error"
-  >("loading");
+  const [loadedImage, setLoadedImage] = useState<{
+    url: string;
+    image: HTMLImageElement;
+  } | null>(null);
+  const [imageErrorUrl, setImageErrorUrl] = useState<string | null>(null);
   const imageRectRef = useRef<ImageRect | null>(null);
+
+  const currentImage =
+    loadedImage?.url === initialTask.imageUrl ? loadedImage.image : null;
+  const imageStatus: "loading" | "loaded" | "error" = currentImage
+    ? "loaded"
+    : imageErrorUrl === initialTask.imageUrl
+      ? "error"
+      : "loading";
 
   // Internal Drag State
   const [draggingMode, setDraggingMode] = useState<
@@ -157,22 +166,21 @@ export function CanvasPage({
   // Load image from task URL
   useEffect(() => {
     let cancelled = false;
-    setImageStatus("loading");
-    setLoadedImage(null);
+    const imageUrl = initialTask.imageUrl;
 
     const img = new Image();
     img.onload = () => {
       if (!cancelled) {
-        setLoadedImage(img);
-        setImageStatus("loaded");
+        setLoadedImage({ url: imageUrl, image: img });
+        setImageErrorUrl((prev) => (prev === imageUrl ? null : prev));
       }
     };
     img.onerror = () => {
       if (!cancelled) {
-        setImageStatus("error");
+        setImageErrorUrl(imageUrl);
       }
     };
-    img.src = initialTask.imageUrl;
+    img.src = imageUrl;
 
     return () => {
       cancelled = true;
@@ -348,16 +356,16 @@ export function CanvasPage({
     }
 
     // Image rendering (imageRect is zoom=1 기준 고정, ctx.scale(zoom)이 스케일링 담당)
-    if (imageStatus === "loaded" && loadedImage) {
+    if (imageStatus === "loaded" && currentImage) {
       const imageRect = computeImageRect(
         w,
         h,
-        loadedImage.naturalWidth,
-        loadedImage.naturalHeight,
+        currentImage.naturalWidth,
+        currentImage.naturalHeight,
       );
       imageRectRef.current = imageRect;
       ctx.drawImage(
-        loadedImage,
+        currentImage,
         imageRect.x,
         imageRect.y,
         imageRect.width,
@@ -545,7 +553,7 @@ export function CanvasPage({
     drawPoints,
     tool,
     isLocked,
-    loadedImage,
+    currentImage,
     imageStatus,
   ]);
 
@@ -951,10 +959,10 @@ export function CanvasPage({
     toast.success("Task reopened for editing.");
   }
 
-  function handleDeleteAnnotation(id: string) {
+  const handleDeleteAnnotation = useCallback((id: string) => {
     setAnnotations((prev) => prev.filter((a) => a.id !== id));
-    if (selectedAnnotation === id) setSelectedAnnotation(null);
-  }
+    setSelectedAnnotation((prev) => (prev === id ? null : prev));
+  }, []);
 
   const TOOLS: {
     id: CanvasTool;
@@ -1019,7 +1027,7 @@ export function CanvasPage({
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isLocked, selectedAnnotation]);
+  }, [isLocked, selectedAnnotation, handleDeleteAnnotation]);
 
   return (
     <div className="bg-background flex h-screen flex-col overflow-hidden">
