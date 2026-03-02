@@ -4,7 +4,6 @@ import capstone.api.contract.UserContract;
 import capstone.api.core.exception.BusinessException;
 import capstone.api.core.exception.ErrorCode;
 import capstone.api.domain.User;
-import capstone.api.dto.UserDto;
 import capstone.api.repository.UserRepository;
 import capstone.api.service.UserService;
 import org.junit.jupiter.api.Assertions;
