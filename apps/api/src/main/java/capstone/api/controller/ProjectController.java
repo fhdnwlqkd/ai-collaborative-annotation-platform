@@ -1,6 +1,9 @@
 package capstone.api.controller;
 
 
+import capstone.api.contract.ProjectContract;
+import capstone.api.controller.mapper.ProjectDtoMapper;
+import capstone.api.core.api.ApiResponse;
 import capstone.api.dto.JoinProjectRequest;
 import capstone.api.service.ProjectService;
 import capstone.api.dto.CreateProjectRequest;
@@ -20,21 +23,28 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ProjectController {
     private final ProjectService projectService;
+    private final ProjectDtoMapper projectDtoMapper;
 
     @PostMapping
-    public ProjectResponse createProject(
+    public ResponseEntity<ApiResponse<ProjectResponse>> createProject(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody CreateProjectRequest request) {
-        Long userId = Long.parseLong(userDetails.getUsername());
+            @Valid @RequestBody CreateProjectRequest request) {
+        String externalId = userDetails.getUsername();
 
-        return projectService.createProject(userId, request);
+        ProjectContract.ProjectResult result = projectService.createProject(
+                externalId,
+                projectDtoMapper.toCommand(request)
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(projectDtoMapper.from(result)));
     }
+
     @PostMapping("/join")
-    public ResponseEntity<String> joinProject(
+    public ResponseEntity<ApiResponse<String>> joinProject(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody JoinProjectRequest request){
-        Long userId = Long.parseLong(userDetails.getUsername());
-        projectService.joinProject(userId, request);
-        return ResponseEntity.ok("프로젝트 참여에 성공했습니다.");
+        String externalId = userDetails.getUsername();
+        projectService.joinProject(externalId, projectDtoMapper.toCommand(request));
+        return ResponseEntity.ok(ApiResponse.success("프로젝트 참여에 성공했습니다."));
     }
 }
