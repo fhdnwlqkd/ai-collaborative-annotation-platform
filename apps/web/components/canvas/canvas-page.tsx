@@ -47,11 +47,14 @@ import {
   ONLINE_USERS,
 } from "@/lib/store";
 
-type CanvasTool = "select" | "bbox" | "polygon" | "pan" | "zoomin" | "zoomout";
+type CanvasTool = "select" | "bbox" | "polygon" | "pan";
 type SuggestStatus = "idle" | "queued" | "running" | "ready";
 type ImageRect = { x: number; y: number; width: number; height: number };
 
 const CANVAS_PADDING = 40;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.25;
 
 function computeImageRect(
   canvasWidth: number,
@@ -663,10 +666,6 @@ export function CanvasPage({
     } else if (tool === "pan") {
       setDraggingMode("pan");
       setDragStartPos({ x: e.clientX, y: e.clientY });
-    } else if (tool === "zoomin") {
-      setZoom((z) => Math.min(z + 0.25, 3));
-    } else if (tool === "zoomout") {
-      setZoom((z) => Math.max(z - 0.25, 0.5));
     }
   }
 
@@ -964,7 +963,35 @@ export function CanvasPage({
     setSelectedAnnotation((prev) => (prev === id ? null : prev));
   }, []);
 
-  const TOOLS: {
+  const applyZoom = useCallback(
+    (direction: "in" | "out") => {
+      if (isLocked) return;
+
+      const delta = direction === "in" ? ZOOM_STEP : -ZOOM_STEP;
+      const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom + delta));
+      if (nextZoom === zoom) return;
+
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        setZoom(nextZoom);
+        return;
+      }
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const worldXAtCenter = (centerX - pan.x) / zoom;
+      const worldYAtCenter = (centerY - pan.y) / zoom;
+
+      setZoom(nextZoom);
+      setPan({
+        x: centerX - worldXAtCenter * nextZoom,
+        y: centerY - worldYAtCenter * nextZoom,
+      });
+    },
+    [isLocked, pan.x, pan.y, zoom],
+  );
+
+  const MODE_TOOLS: {
     id: CanvasTool;
     icon: React.ReactNode;
     label: string;
@@ -994,17 +1021,28 @@ export function CanvasPage({
       label: "Pan",
       shortcut: "H",
     },
+  ];
+
+  const ACTION_BUTTONS: {
+    id: "zoom-in" | "zoom-out";
+    icon: React.ReactNode;
+    label: string;
+    shortcut: string;
+    action: "in" | "out";
+  }[] = [
     {
-      id: "zoomin",
+      id: "zoom-in",
       icon: <ZoomIn className="h-5 w-5" />,
       label: "Zoom In",
       shortcut: "+",
+      action: "in",
     },
     {
-      id: "zoomout",
+      id: "zoom-out",
       icon: <ZoomOut className="h-5 w-5" />,
       label: "Zoom Out",
       shortcut: "-",
+      action: "out",
     },
   ];
 
@@ -1012,11 +1050,20 @@ export function CanvasPage({
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (isLocked) return;
+      const hasModifier = e.ctrlKey || e.metaKey || e.altKey;
       const key = e.key.toLowerCase();
       if (key === "v") setTool("select");
       if (key === "b") setTool("bbox");
       if (key === "p") setTool("polygon");
       if (key === "h") setTool("pan");
+      if (!hasModifier && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        applyZoom("in");
+      }
+      if (!hasModifier && (e.key === "-" || e.key === "_")) {
+        e.preventDefault();
+        applyZoom("out");
+      }
       if (key === "escape") {
         setIsDrawing(false);
         setDrawPoints([]);
@@ -1027,7 +1074,7 @@ export function CanvasPage({
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isLocked, selectedAnnotation, handleDeleteAnnotation]);
+  }, [isLocked, selectedAnnotation, handleDeleteAnnotation, applyZoom]);
 
   return (
     <div className="bg-background flex h-screen flex-col overflow-hidden">
@@ -1133,7 +1180,7 @@ export function CanvasPage({
       <div className="flex flex-1 overflow-hidden">
         {/* Left Toolbar */}
         <div className="border-border bg-card flex w-12 shrink-0 flex-col items-center gap-1 border-r py-2">
-          {TOOLS.map((t) => (
+          {MODE_TOOLS.map((t) => (
             <button
               key={t.id}
               onClick={() => !isLocked && setTool(t.id)}
@@ -1146,6 +1193,20 @@ export function CanvasPage({
               disabled={isLocked}
             >
               {t.icon}
+            </button>
+          ))}
+          <Separator className="my-1 h-px w-7" />
+          {ACTION_BUTTONS.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => !isLocked && applyZoom(b.action)}
+              className={`text-muted-foreground hover:text-foreground hover:bg-secondary flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                isLocked ? "cursor-not-allowed opacity-50" : ""
+              }`}
+              title={`${b.label} (${b.shortcut})`}
+              disabled={isLocked}
+            >
+              {b.icon}
             </button>
           ))}
           <div className="text-muted-foreground mt-auto text-center font-mono text-[10px]">
@@ -1175,11 +1236,7 @@ export function CanvasPage({
                 ? "cursor-crosshair"
                 : tool === "pan"
                   ? "cursor-grab"
-                  : tool === "zoomin"
-                    ? "cursor-zoom-in"
-                    : tool === "zoomout"
-                      ? "cursor-zoom-out"
-                      : "cursor-default"
+                  : "cursor-default"
             }`}
           />
         </div>
