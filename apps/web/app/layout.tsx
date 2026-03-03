@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
+import { Agentation } from "agentation";
 import "./globals.css";
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -38,6 +39,9 @@ export default function RootLayout({
           }}
         />
         <Analytics />
+        {process.env.NODE_ENV === "development" && (
+          <Agentation endpoint="http://localhost:4747" />
+        )}
       </body>
     </html>
   );
