@@ -8,7 +8,7 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: capstone
       MYSQL_USER: capstone
-      MYSQL_PASSWORD: capstone_pw
+      MYSQL_PASSWORD: Capstone123!@
       TZ: Asia/Seoul
     ports:
       - "3306:3306"

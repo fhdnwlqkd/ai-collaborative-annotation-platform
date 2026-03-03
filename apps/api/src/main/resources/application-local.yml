@@ -6,7 +6,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/capstone?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
     username: capstone
-    password: capstone_pw
+    password: Capstone123!@
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
