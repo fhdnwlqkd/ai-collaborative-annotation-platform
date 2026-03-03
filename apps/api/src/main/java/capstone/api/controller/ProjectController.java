@@ -4,10 +4,8 @@ package capstone.api.controller;
 import capstone.api.contract.ProjectContract;
 import capstone.api.controller.mapper.ProjectDtoMapper;
 import capstone.api.core.api.ApiResponse;
-import capstone.api.dto.JoinProjectRequest;
+import capstone.api.dto.ProjectDto;
 import capstone.api.service.ProjectService;
-import capstone.api.dto.CreateProjectRequest;
-import capstone.api.dto.ProjectResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,9 +24,9 @@ public class ProjectController {
     private final ProjectDtoMapper projectDtoMapper;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ProjectResponse>> createProject(
+    public ResponseEntity<ApiResponse<ProjectDto.ProjectResponse>> createProject(
             @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @RequestBody CreateProjectRequest request) {
+            @Valid @RequestBody ProjectDto.CreateRequest request) {
         String externalId = userDetails.getUsername();
 
         ProjectContract.ProjectResult result = projectService.createProject(
@@ -42,7 +40,7 @@ public class ProjectController {
     @PostMapping("/join")
     public ResponseEntity<ApiResponse<String>> joinProject(
             @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @RequestBody JoinProjectRequest request){
+            @Valid @RequestBody ProjectDto.JoinRequest request){
         String externalId = userDetails.getUsername();
         projectService.joinProject(externalId, projectDtoMapper.toCommand(request));
         return ResponseEntity.ok(ApiResponse.success("프로젝트 참여에 성공했습니다."));
