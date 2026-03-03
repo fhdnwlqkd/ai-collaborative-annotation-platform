@@ -1,6 +1,6 @@
 package capstone.api.contract;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 public class ProjectContract {
     public record CreateCommand(
@@ -17,6 +17,6 @@ public class ProjectContract {
             String name,
             String description,
             String inviteCode,
-            Instant createdAt
+            LocalDateTime createdAt
     ) {}
 }
