@@ -284,9 +284,27 @@ export function CanvasPage({
       if (!imgRect) return null;
       const normPos = worldToNormalized(worldPos.x, worldPos.y, imgRect);
 
+      const isPointInLabel = (
+        ann: { label: string; confidence?: number; points: { x: number; y: number }[] },
+      ) => {
+        const worldPoints = ann.points.map((p) => normalizedToWorld(p.x, p.y, imgRect));
+        const minX = Math.min(...worldPoints.map((p) => p.x));
+        const minY = Math.min(...worldPoints.map((p) => p.y));
+        const labelText = `${ann.label}${ann.confidence ? ` ${(ann.confidence * 100).toFixed(0)}%` : ""}`;
+        const charWidth = 6.5;
+        const textWidth = labelText.length * charWidth + 8;
+        const labelHeight = 20;
+        return (
+          worldPos.x >= minX &&
+          worldPos.x <= minX + textWidth / zoom &&
+          worldPos.y >= minY - labelHeight / zoom &&
+          worldPos.y <= minY
+        );
+      };
+
       for (let i = annotations.length - 1; i >= 0; i--) {
         const ann = annotations[i];
-        if (ann.type === "bbox" && isPointInBBox(normPos, ann.points))
+        if (ann.type === "bbox" && (isPointInBBox(normPos, ann.points) || isPointInLabel(ann)))
           return ann.id;
         if (ann.type === "polygon" && isPointInPolygon(normPos, ann.points))
           return ann.id;
@@ -295,7 +313,7 @@ export function CanvasPage({
         for (let i = suggestions.length - 1; i >= 0; i--) {
           const s = suggestions[i];
           if (!selectedSuggestions.has(s.id)) continue;
-          if (s.type === "bbox" && isPointInBBox(normPos, s.points))
+          if (s.type === "bbox" && (isPointInBBox(normPos, s.points) || isPointInLabel(s)))
             return s.id;
           if (s.type === "polygon" && isPointInPolygon(normPos, s.points))
             return s.id;
@@ -303,7 +321,7 @@ export function CanvasPage({
       }
       return null;
     },
-    [annotations, showSuggestionReview, suggestions, selectedSuggestions],
+    [annotations, showSuggestionReview, suggestions, selectedSuggestions, zoom],
   );
 
   // Confirm / Reopen modals
