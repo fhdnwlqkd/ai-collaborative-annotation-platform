@@ -29,7 +29,7 @@ public class ProjectService {
         User owner = userRepository.findByExternalId(externalId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        Project project = new Project(command.name(), command.description(), owner);
+        Project project = Project.create(command.name(), command.description(), owner);
         Project savedProject = projectRepository.save(project);
 
         ProjectMember member = new ProjectMember(savedProject, owner, ProjectMember.Role.OWNER);
