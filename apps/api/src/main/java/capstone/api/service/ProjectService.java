@@ -32,7 +32,7 @@ public class ProjectService {
         Project project = Project.create(command.name(), command.description(), owner);
         Project savedProject = projectRepository.save(project);
 
-        ProjectMember member = new ProjectMember(savedProject, owner, ProjectMember.Role.OWNER);
+        ProjectMember member = ProjectMember.create(savedProject, owner, ProjectMember.Role.OWNER);
         projectMemberRepository.save(member);
 
         return projectMapper.toResult(savedProject);
@@ -50,7 +50,7 @@ public class ProjectService {
             throw new BusinessException(ErrorCode.ALREADY_PROJECT_MEMBER);
         }
 
-        ProjectMember newMember = new ProjectMember(project, user, ProjectMember.Role.PARTICIPANT);
+        ProjectMember newMember = ProjectMember.create(project, user, ProjectMember.Role.PARTICIPANT);
         projectMemberRepository.save(newMember);
     }
 }
