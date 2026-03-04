@@ -11,6 +11,7 @@ import capstone.api.domain.User;
 import capstone.api.repository.ProjectMemberRepository;
 import capstone.api.repository.UserRepository;
 import capstone.api.service.mapper.ProjectMapper;
+import capstone.api.domain.enums.ProjectMemberRole;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,7 @@ public class ProjectService {
         Project project = Project.create(command.name(), command.description(), owner);
         Project savedProject = projectRepository.save(project);
 
-        ProjectMember member = ProjectMember.create(savedProject, owner, ProjectMember.Role.OWNER);
+        ProjectMember member = ProjectMember.create(savedProject, owner, ProjectMemberRole.OWNER);
         projectMemberRepository.save(member);
 
         return projectMapper.toResult(savedProject);
@@ -50,7 +51,7 @@ public class ProjectService {
             throw new BusinessException(ErrorCode.ALREADY_PROJECT_MEMBER);
         }
 
-        ProjectMember newMember = ProjectMember.create(project, user, ProjectMember.Role.PARTICIPANT);
+        ProjectMember newMember = ProjectMember.create(project, user, ProjectMemberRole.PARTICIPANT);
         projectMemberRepository.save(newMember);
     }
 }
