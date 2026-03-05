@@ -1,6 +1,6 @@
 package capstone.api.repository;
 
-import capstone.api.dto.ProjectDto;
+import capstone.api.contract.ProjectContract;
 import capstone.api.domain.QProject;
 import capstone.api.domain.QProjectMember;
 import capstone.api.domain.QTask;
@@ -17,7 +17,7 @@ import java.util.List;
 public class ProjectQueryRepository {
     private final JPAQueryFactory queryFactory;
 
-    public List<ProjectDto.ProjectListReadModel> findAllProjectList(String externalId) {
+    public List<ProjectContract.ProjectListResult> findAllProjectList(String externalId) {
         QProject project = QProject.project;
         QProjectMember projectMember = QProjectMember.projectMember;
         QProjectMember subProjectMember = new QProjectMember("subPm");
@@ -25,7 +25,7 @@ public class ProjectQueryRepository {
         QUser user = QUser.user;
 
         return queryFactory
-                .select(Projections.constructor(ProjectDto.ProjectListReadModel.class,
+                .select(Projections.constructor(ProjectContract.ProjectListResult.class,
                         project.id,
                         project.name,
                         projectMember.role,
@@ -42,3 +42,4 @@ public class ProjectQueryRepository {
                 .fetch();
     }
 }
+

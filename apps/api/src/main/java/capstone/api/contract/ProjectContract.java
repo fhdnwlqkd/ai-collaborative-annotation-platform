@@ -1,6 +1,7 @@
 package capstone.api.contract;
 
 import java.time.LocalDateTime;
+import capstone.api.domain.enums.ProjectMemberRole;
 
 public class ProjectContract {
     public record CreateCommand(
@@ -18,5 +19,13 @@ public class ProjectContract {
             String description,
             String inviteCode,
             LocalDateTime createdAt
+    ) {}
+
+    public record ProjectListResult(
+            Long projectId,
+            String name,
+            ProjectMemberRole myRole,
+            long memberCount,
+            long taskCount
     ) {}
 }
