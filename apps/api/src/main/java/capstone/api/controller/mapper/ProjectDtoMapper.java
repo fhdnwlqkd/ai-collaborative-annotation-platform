@@ -11,4 +11,6 @@ public interface ProjectDtoMapper {
     ProjectContract.JoinCommand toCommand(ProjectDto.JoinRequest request);
 
     ProjectDto.ProjectResponse from(ProjectContract.ProjectResult result);
+
+    java.util.List<ProjectDto.ProjectListReadModel> from(java.util.List<ProjectContract.ProjectListResult> results);
 }

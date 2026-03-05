@@ -9,8 +9,10 @@ import capstone.api.domain.ProjectMember;
 import capstone.api.repository.ProjectRepository;
 import capstone.api.domain.User;
 import capstone.api.repository.ProjectMemberRepository;
+import capstone.api.repository.ProjectQueryRepository;
 import capstone.api.repository.UserRepository;
 import capstone.api.service.mapper.ProjectMapper;
+import capstone.api.domain.enums.ProjectMemberRole;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,8 +23,14 @@ import org.springframework.stereotype.Service;
 public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectQueryRepository projectQueryRepository;
     private final UserRepository userRepository;
     private final ProjectMapper projectMapper;
+
+    @Transactional(readOnly = true)
+    public java.util.List<ProjectContract.ProjectListResult> getProjectList(String externalId) {
+        return projectQueryRepository.findAllProjectList(externalId);
+    }
 
     @Transactional
     public ProjectContract.ProjectResult createProject(String externalId, ProjectContract.CreateCommand command) {
@@ -32,7 +40,7 @@ public class ProjectService {
         Project project = Project.create(command.name(), command.description(), owner);
         Project savedProject = projectRepository.save(project);
 
-        ProjectMember member = new ProjectMember(savedProject, owner, ProjectMember.Role.OWNER);
+        ProjectMember member = ProjectMember.create(savedProject, owner, ProjectMemberRole.OWNER);
         projectMemberRepository.save(member);
 
         return projectMapper.toResult(savedProject);
@@ -50,7 +58,7 @@ public class ProjectService {
             throw new BusinessException(ErrorCode.ALREADY_PROJECT_MEMBER);
         }
 
-        ProjectMember newMember = new ProjectMember(project, user, ProjectMember.Role.PARTICIPANT);
+        ProjectMember newMember = ProjectMember.create(project, user, ProjectMemberRole.PARTICIPANT);
         projectMemberRepository.save(newMember);
     }
 }

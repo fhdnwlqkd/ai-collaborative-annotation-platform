@@ -1,44 +1,37 @@
 package capstone.api.domain;
 
+import capstone.api.domain.enums.ProjectMemberRole;
 import jakarta.persistence.*;
-import java.time.Instant;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "project_members")
-@IdClass(ProjectMemberId.class) // 복합 키 클래스
-public class ProjectMember {
+@Getter
+@SuperBuilder
+@NoArgsConstructor
+@Table(name = "project_members", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"project_id", "user_id"})
+})
+public class ProjectMember extends BaseEntity {
 
-    public enum Role { OWNER, PARTICIPANT }
-
-    @Id // PK의 일부
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
+    @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @Id // PK의 일부
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
-    private Role role;
+    private ProjectMemberRole role;
 
-    @Column(name = "joined_at", nullable = false, updatable = false)
-    private Instant joinedAt = Instant.now();
-
-    protected ProjectMember() {}
-
-    public ProjectMember(Project project, User user, Role role) {
-        this.project = project;
-        this.user = user;
-        this.role = role;
-        this.joinedAt = Instant.now();
+    public static ProjectMember create(Project project, User user, ProjectMemberRole role) {
+        return ProjectMember.builder()
+                .project(project)
+                .user(user)
+                .role(role)
+                .build();
     }
-
-    // Getter들
-    public Project getProject() { return project; }
-    public User getUser() { return user; }
-    public Role getRole() { return role; }
-    public Instant getJoinedAt() { return joinedAt; }
 }
