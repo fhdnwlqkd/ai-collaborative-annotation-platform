@@ -3,10 +3,15 @@ spring:
     activate:
       on-profile: local
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+
   datasource:
     url: jdbc:mysql://localhost:3306/capstone?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
     username: capstone
-    password: capstone_pw
+    password: Capstone123!@
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:

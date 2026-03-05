@@ -21,6 +21,7 @@ apps/api/build/
 # Python
 __pycache__/
 *.pyc
+venv/
 .venv/
 apps/ai/.venv/
 *.egg-info/
