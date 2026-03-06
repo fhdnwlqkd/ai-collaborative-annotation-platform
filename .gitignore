@@ -15,6 +15,7 @@ apps/web/dist/
 # Java / Gradle
 apps/api/.gradle/
 apps/api/build/
+**/src/main/generated/
 **/out/
 **/*.log
 

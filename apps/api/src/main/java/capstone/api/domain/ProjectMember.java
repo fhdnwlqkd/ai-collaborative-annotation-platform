@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.CreatedDate;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -27,11 +30,16 @@ public class ProjectMember extends BaseEntity {
     @Column(name = "role", nullable = false, length = 20)
     private ProjectMemberRole role;
 
+    @CreatedDate
+    @Column(name = "joined_at", nullable = false, updatable = false)
+    private LocalDateTime joinedAt;
+
     public static ProjectMember create(Project project, User user, ProjectMemberRole role) {
         return ProjectMember.builder()
                 .project(project)
                 .user(user)
                 .role(role)
+                .joinedAt(LocalDateTime.now())
                 .build();
     }
 }
