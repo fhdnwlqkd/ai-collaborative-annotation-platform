@@ -48,6 +48,9 @@ dependencies {
 	implementation 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 	implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
+	// AWS S3 (for MinIO)
+	implementation 'software.amazon.awssdk:s3:2.25.11'
+
 	// QueryDSL
 	implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
 	annotationProcessor "com.querydsl:querydsl-apt:5.1.0:jakarta"
