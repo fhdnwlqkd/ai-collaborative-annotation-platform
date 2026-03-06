@@ -1,6 +1,6 @@
 package capstone.api.domain;
 import jakarta.persistence.*;
-import lombok.Builder;
+//import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -14,8 +14,14 @@ import java.util.UUID;
 @Table(name = "users")
 public class User extends BaseEntity {
     @Column(unique = true, nullable = false, updatable = false)
-    @Builder.Default
-    private String externalId = UUID.randomUUID().toString();
+    private String externalId;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.externalId == null) {
+            this.externalId = UUID.randomUUID().toString();
+        }
+    }
 
     //로그인용
     @Column(name = "email", nullable = false, unique = true, length = 255)
