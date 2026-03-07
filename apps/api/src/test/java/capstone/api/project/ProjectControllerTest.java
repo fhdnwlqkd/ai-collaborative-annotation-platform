@@ -81,6 +81,21 @@ class ProjectControllerTest {
     }
 
     @Test
+    @DisplayName("API 통합 테스트: 유효하지 않은 토큰으로 프로젝트 생성 시 인증 오류가 발생한다")
+    void TokenErrorTest() throws Exception {
+        var request = new ProjectDto.CreateRequest("API 테스트 프로젝트", "테스트입니다");
+
+        mockMvc.perform(post("/api/v1/projects")
+                        .header("Authorization", "Bearer " + "invalid_token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("A001"))
+                .andExpect(jsonPath("$.error.message").value("인증이 필요합니다."));
+    }
+
+    @Test
     @DisplayName("API 통합 테스트: 프로젝트 목록을 조회한다")
     void getProjectListApiTest() throws Exception {
         // Given: 유저 1이 프로젝트 생성
